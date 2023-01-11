@@ -1,4 +1,4 @@
-use poker::Card;
+use poker::{Card, Rank};
 
 fn get_deck() -> Vec<Card>{
     let deck = Card::generate_deck().collect();
@@ -16,6 +16,8 @@ fn main() {
 fn check_deck_size(){
     let deck :Vec<Card> = get_deck();
     assert_eq!(deck.len(), 52);
-    let a = deck.get(0).unwrap().suit().;
-
+    let example_rank = deck.get(0).unwrap().rank();
+    // Check the rank is reasonable
+    assert!(Rank::Ace <= example_rank);
+    assert!(Rank::Two >= example_rank);
 }
