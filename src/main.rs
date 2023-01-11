@@ -21,3 +21,8 @@ fn check_deck_size() {
     assert!(Rank::Ace >= example_rank);
     assert!(Rank::Two <= example_rank);
 }
+
+#[test]
+fn check_main() {
+    main()
+}
