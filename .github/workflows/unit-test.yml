@@ -3,7 +3,7 @@ name: Coverage
 on: [pull_request, push]
 
 jobs:
-  coverage:
+  test_with_coverage:
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
