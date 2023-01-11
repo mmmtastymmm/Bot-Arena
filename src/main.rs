@@ -14,6 +14,8 @@ fn main() {
 
 #[test]
 fn check_deck_size(){
-    let deck = get_deck();
+    let deck :Vec<Card> = get_deck();
     assert_eq!(deck.len(), 52);
+    let a = deck.get(0).unwrap().suit().;
+
 }
