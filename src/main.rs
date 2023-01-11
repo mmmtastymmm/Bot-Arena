@@ -18,6 +18,6 @@ fn check_deck_size() {
     assert_eq!(deck.len(), 52);
     let example_rank = deck.get(0).unwrap().rank();
     // Check the rank is reasonable
-    assert!(Rank::Ace <= example_rank);
-    assert!(Rank::Two >= example_rank);
+    assert!(Rank::Ace >= example_rank);
+    assert!(Rank::Two <= example_rank);
 }
