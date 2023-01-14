@@ -1,5 +1,7 @@
 use poker::Card;
 
+use crate::game_components::Table;
+
 mod game_components;
 
 fn get_deck() -> Vec<Card> {
@@ -12,6 +14,9 @@ fn main() {
     println!("Hello, world!");
     let deck = get_deck();
     println!("Have this many cards: {}", deck.len());
+
+    let table = Table::new(12);
+    println!("This many players: {}", table.get_player_count())
 }
 
 #[test]
