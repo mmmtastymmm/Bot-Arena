@@ -1,4 +1,8 @@
-use poker::Card;
+extern crate core;
+
+use std::sync::Arc;
+
+use poker::{Card, Evaluator};
 
 use crate::game_components::Table;
 
@@ -15,7 +19,10 @@ fn main() {
     let deck = get_deck();
     println!("Have this many cards: {}", deck.len());
 
-    let table = Table::new(12);
+    let shared_evaluator = Arc::new(Evaluator::new());
+
+    let mut table = Table::new(12, shared_evaluator);
+    table.deal();
     println!("This many players: {}", table.get_player_count())
 }
 
