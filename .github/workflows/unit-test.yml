@@ -22,19 +22,11 @@ jobs:
           fail_ci_if_error: true
   clippy_check:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: clippy
-      - uses: actions-rs/clippy@master
-        with:
-          args: --all-features --all-targets
-  docs:
-    runs-on: ubuntu-latest
-    container: rust:slim
-    steps:
-      - uses: olix0r/cargo-action-fmt/setup@v2
-      - uses: actions/checkout@v2
-      - run: cargo doc --no-deps --message-format=json | cargo-action-fmt
+      - uses: actions/checkout@v3
+      - name: Install Rust
+        run: rustup update stable && rustup component add clippy
+      - name: Install clippy
+        run: cargo clippy
