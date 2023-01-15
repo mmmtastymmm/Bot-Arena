@@ -29,10 +29,10 @@ pub struct Player {
 impl fmt::Display for PlayerState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Folded => { write!(f, "Folded") }
+            Folded => { write!(f, "{{\"State Type\": \"Folded\", \"Details\":{{}}}}") }
             Active(a) => {
                 write!(f,
-                       "Active: Hand: {} {}, Bet: {}",
+                       "{{\"State Type\": \"Active\", \"Details\": {{\"Hand\": \"{} {}\", \"Bet\": {}}}}}",
                        a.hand[0],
                        a.hand[1],
                        a.current_bet)
@@ -44,7 +44,7 @@ impl fmt::Display for PlayerState {
 impl fmt::Display for Player {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f,
-               "Player: Player state: {}, Total money: {}, Is all in?: {}",
+               "{{\"Player\": {{\"Player state\": {}, \"Total money\": {}, \"Is all in?\": {}}}}}",
                self.player_state,
                self.total_money,
                self.is_all_in)
@@ -94,6 +94,8 @@ impl Player {
 #[cfg(test)]
 mod tests {
     use poker::{Card, Rank, Suit};
+
+    use json::parse;
 
     use crate::player_components::{ActiveState, DEFAULT_START_MONEY, Player, PlayerState};
 
@@ -204,7 +206,10 @@ mod tests {
     fn test_player_state_string_active() {
         let state = PlayerState::Active(ActiveState { hand: [Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)], current_bet: 30 });
         let string_version = state.to_string();
-        assert_eq!(string_version, "Active: Hand: [ A♣ ] [ A♥ ], Bet: 30")
+        let json_parsed_string = json::parse(&string_version).unwrap().dump();
+        assert_eq!(
+            json_parsed_string,
+            "{\"State Type\":\"Active\",\"Details\":{\"Hand\":\"[ A♣ ] [ A♥ ]\",\"Bet\":30}}")
     }
 
 
@@ -212,7 +217,10 @@ mod tests {
     fn test_player_state_string_folded() {
         let state = PlayerState::Folded;
         let string_version = state.to_string();
-        assert_eq!(string_version, "Folded")
+        let json_parsed_string = json::parse(&string_version).unwrap().dump();
+        assert_eq!(
+            json_parsed_string,
+            "{\"State Type\":\"Folded\",\"Details\":{}}")
     }
 
     #[test]
@@ -221,8 +229,9 @@ mod tests {
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         player.bet(DEFAULT_START_MONEY);
         let string_version = player.to_string();
+        let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
-            string_version,
-            "Player: Player state: Active: Hand: [ A♣ ] [ A♥ ], Bet: 500, Total money: 500, Is all in?: true");
+            json_parsed_string,
+            "{\"Player\":{\"Player state\":{\"State Type\":\"Active\",\"Details\":{\"Hand\":\"[ A♣ ] [ A♥ ]\",\"Bet\":500}},\"Total money\":500,\"Is all in?\":true}}")
     }
 }
