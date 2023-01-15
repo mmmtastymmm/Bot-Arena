@@ -71,8 +71,6 @@ impl Player {
 
 #[cfg(test)]
 mod tests {
-    use std::ptr::eq;
-
     use poker::{Card, Rank, Suit};
 
     use crate::player_components::{DEFAULT_START_MONEY, Player, PlayerState};
