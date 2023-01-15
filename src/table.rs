@@ -51,7 +51,6 @@ impl Table {
 
 
 #[cfg(test)]
-#[cfg_attr(coverage_nightly, no_coverage)]
 mod tests {
     use std::collections::HashSet;
     use std::sync::Arc;

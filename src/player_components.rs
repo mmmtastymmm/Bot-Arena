@@ -53,7 +53,6 @@ impl Player {
 
 
 #[cfg(test)]
-#[cfg_attr(coverage_nightly, no_coverage)]
 mod tests {
     use poker::{Card, Rank, Suit};
 
