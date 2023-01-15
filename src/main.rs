@@ -8,8 +8,7 @@ mod player_components;
 mod table;
 
 fn get_deck() -> Vec<Card> {
-    let deck = Card::generate_deck().collect();
-    deck
+    Card::generate_deck().collect()
 }
 
 
