@@ -138,6 +138,8 @@ mod tests {
         player.bet(BET_AMOUNT);
         if let PlayerState::Active(a) = player.player_state {
             assert_eq!(a.current_bet, BET_AMOUNT * 3)
+        } else {
+            panic!("Player wasn't in active state after betting.")
         }
     }
 
@@ -150,6 +152,8 @@ mod tests {
         player.bet(DEFAULT_START_MONEY);
         if let PlayerState::Active(a) = player.player_state {
             assert_eq!(a.current_bet, DEFAULT_START_MONEY)
+        } else {
+            panic!("Player wasn't in active state after going all in.")
         }
     }
 
