@@ -4,7 +4,7 @@ use poker::{Card, Evaluator};
 
 use table::Table;
 
-mod player_componets;
+mod player_components;
 mod table;
 
 fn get_deck() -> Vec<Card> {

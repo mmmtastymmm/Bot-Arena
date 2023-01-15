@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use poker::{Card, Evaluator};
 
-use crate::player_componets::Player;
+use crate::player_components::Player;
 
 pub struct Table {
     players: Vec<Player>,
@@ -57,7 +57,7 @@ mod tests {
 
     use poker::Evaluator;
 
-    use crate::player_componets::PlayerState;
+    use crate::player_components::PlayerState;
     use crate::table::Table;
 
     #[test]

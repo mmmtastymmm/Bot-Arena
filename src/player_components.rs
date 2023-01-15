@@ -1,6 +1,6 @@
 use poker::Card;
 
-use crate::player_componets::PlayerState::{Active, Folded};
+use crate::player_components::PlayerState::{Active, Folded};
 
 pub const DEFAULT_START_MONEY: i32 = 500;
 
@@ -56,7 +56,7 @@ impl Player {
 mod tests {
     use poker::{Card, Rank, Suit};
 
-    use crate::player_componets::{DEFAULT_START_MONEY, Player, PlayerState};
+    use crate::player_components::{DEFAULT_START_MONEY, Player, PlayerState};
 
     #[test]
     fn test_player_deal() {
