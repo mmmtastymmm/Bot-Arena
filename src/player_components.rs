@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::Formatter;
+
 use poker::Card;
 
 use crate::player_components::PlayerState::{Active, Folded};
@@ -11,13 +14,8 @@ pub enum PlayerState {
 }
 
 #[derive(Copy, Clone)]
-pub struct Hand {
-    pub cards: [Card; 2],
-}
-
-#[derive(Copy, Clone)]
 pub struct ActiveState {
-    pub hand: Hand,
+    pub hand: [Card; 2],
     pub current_bet: i32,
 }
 
@@ -25,9 +23,33 @@ pub struct ActiveState {
 pub struct Player {
     pub player_state: PlayerState,
     pub total_money: i32,
-    pub is_all_in: bool
+    pub is_all_in: bool,
 }
 
+impl fmt::Display for PlayerState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Folded => { write!(f, "Folded") }
+            Active(a) => {
+                write!(f,
+                       "Active: Hand: {} {}, Bet: {}",
+                       a.hand[0],
+                       a.hand[1],
+                       a.current_bet)
+            }
+        }
+    }
+}
+
+impl fmt::Display for Player {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f,
+               "Player: Player state: {}, Total money: {}, Is all in?: {}",
+               self.player_state,
+               self.total_money,
+               self.is_all_in)
+    }
+}
 
 impl Player {
     pub fn new() -> Self {
@@ -35,7 +57,7 @@ impl Player {
     }
 
     pub fn deal(&mut self, cards: [Card; 2]) {
-        self.player_state = Active(ActiveState { hand: Hand { cards }, current_bet: 0 });
+        self.player_state = Active(ActiveState { hand: cards, current_bet: 0 });
     }
 
     pub fn fold(&mut self) {
@@ -54,7 +76,7 @@ impl Player {
     pub fn bet(&mut self, bet: i32) {
         if let Active(a) = &mut self.player_state {
             let next_bet_total = a.current_bet + bet;
-            if next_bet_total > self.total_money {
+            if next_bet_total >= self.total_money {
                 // Bet more than possible, they are going all in now
                 a.current_bet = self.total_money;
                 self.is_all_in = true;
@@ -73,7 +95,7 @@ impl Player {
 mod tests {
     use poker::{Card, Rank, Suit};
 
-    use crate::player_components::{DEFAULT_START_MONEY, Player, PlayerState};
+    use crate::player_components::{ActiveState, DEFAULT_START_MONEY, Player, PlayerState};
 
     #[test]
     fn test_player_deal() {
@@ -151,7 +173,21 @@ mod tests {
         player.bet(DEFAULT_START_MONEY);
         player.bet(DEFAULT_START_MONEY);
         if let PlayerState::Active(a) = player.player_state {
-            assert_eq!(a.current_bet, DEFAULT_START_MONEY)
+            assert_eq!(a.current_bet, DEFAULT_START_MONEY);
+            assert!(player.is_all_in);
+        } else {
+            panic!("Player wasn't in active state after going all in.")
+        }
+    }
+
+    #[test]
+    fn bet_all_in_1_bet() {
+        let mut player = Player::new();
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.bet(DEFAULT_START_MONEY);
+        if let PlayerState::Active(a) = player.player_state {
+            assert_eq!(a.current_bet, DEFAULT_START_MONEY);
+            assert!(player.is_all_in);
         } else {
             panic!("Player wasn't in active state after going all in.")
         }
@@ -162,5 +198,31 @@ mod tests {
     fn bet_inactive() {
         let mut player = Player::new();
         player.bet(DEFAULT_START_MONEY);
+    }
+
+    #[test]
+    fn test_player_state_string_active() {
+        let state = PlayerState::Active(ActiveState { hand: [Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)], current_bet: 30 });
+        let string_version = state.to_string();
+        assert_eq!(string_version, "Active: Hand: [ A♣ ] [ A♥ ], Bet: 30")
+    }
+
+
+    #[test]
+    fn test_player_state_string_folded() {
+        let state = PlayerState::Folded;
+        let string_version = state.to_string();
+        assert_eq!(string_version, "Folded")
+    }
+
+    #[test]
+    fn test_player_string() {
+        let mut player = Player::new();
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.bet(DEFAULT_START_MONEY);
+        let string_version = player.to_string();
+        assert_eq!(
+            string_version,
+            "Player: Player state: Active: Hand: [ A♣ ] [ A♥ ], Bet: 500, Total money: 500, Is all in?: true");
     }
 }

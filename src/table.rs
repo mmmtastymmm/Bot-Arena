@@ -10,6 +10,8 @@ pub struct Table {
     flop: Option<[Card; 3]>,
     turn: Option<Card>,
     river: Option<Card>,
+    dealer_button_index: usize,
+    current_index: usize,
 }
 
 impl Table {
@@ -23,12 +25,20 @@ impl Table {
             flop: None,
             turn: None,
             river: None,
+            dealer_button_index: 0,
+            current_index: 0,
         }
     }
 
     pub fn get_player_count(&self) -> usize {
         self.players.len()
     }
+
+    pub fn get_current_state(&self) -> String {
+        "".to_string()
+    }
+
+    pub fn take_action(&mut self) {}
 
     pub fn deal(&mut self) {
         let deck = Card::generate_shuffled_deck();
@@ -80,7 +90,7 @@ mod tests {
             match player.player_state {
                 PlayerState::Folded => {}
                 PlayerState::Active(a) => {
-                    for card in &a.hand.cards {
+                    for card in &a.hand {
                         cards.insert(card.to_string());
                     }
                 }

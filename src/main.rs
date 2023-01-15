@@ -6,8 +6,11 @@ use poker::{Card, Evaluator};
 
 use table::Table;
 
+use crate::engine::Engine;
+
 mod player_components;
 mod table;
+mod engine;
 
 fn get_deck() -> Vec<Card> {
     Card::generate_deck().collect()
@@ -21,9 +24,11 @@ fn main() {
 
     let shared_evaluator = Arc::new(Evaluator::new());
 
-    let mut table = Table::new(12, shared_evaluator);
+    let mut table = Table::new(12, shared_evaluator.clone());
     table.deal();
-    println!("This many players: {}", table.get_player_count())
+    println!("This many players: {}", table.get_player_count());
+    let engine = Engine::new(12, shared_evaluator);
+    println!("This is how many players are in the engine: {}", engine.table.get_player_count());
 }
 
 #[test]
