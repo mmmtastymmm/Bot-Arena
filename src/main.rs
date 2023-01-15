@@ -1,16 +1,14 @@
-extern crate core;
-
 use std::sync::Arc;
 
 use poker::{Card, Evaluator};
 
-use crate::game_components::Table;
+use table::Table;
 
-mod game_components;
+mod player_components;
+mod table;
 
 fn get_deck() -> Vec<Card> {
-    let deck = Card::generate_deck().collect();
-    deck
+    Card::generate_deck().collect()
 }
 
 
