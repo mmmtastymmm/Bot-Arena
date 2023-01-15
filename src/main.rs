@@ -1,3 +1,5 @@
+extern crate core;
+
 use std::sync::Arc;
 
 use poker::{Card, Evaluator};

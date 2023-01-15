@@ -25,12 +25,13 @@ pub struct ActiveState {
 pub struct Player {
     pub player_state: PlayerState,
     pub total_money: i32,
+    pub is_all_in: bool
 }
 
 
 impl Player {
     pub fn new() -> Self {
-        Player { player_state: Folded, total_money: DEFAULT_START_MONEY }
+        Player { player_state: Folded, total_money: DEFAULT_START_MONEY, is_all_in: false }
     }
 
     pub fn deal(&mut self, cards: [Card; 2]) {
@@ -47,7 +48,23 @@ impl Player {
     }
 
     pub fn is_alive(self) -> bool {
-        self.total_money > 0
+        self.total_money > 0 && !self.is_all_in
+    }
+
+    pub fn bet(&mut self, bet: i32) {
+        if let Active(a) = &mut self.player_state {
+            let next_bet_total = a.current_bet + bet;
+            if next_bet_total > self.total_money {
+                // Bet more than possible, they are going all in now
+                a.current_bet = self.total_money;
+                self.is_all_in = true;
+            } else {
+                // Normal bet occurred
+                a.current_bet = next_bet_total;
+            }
+        } else {
+            panic!("Betting in a non-active state is illegal!")
+        }
     }
 }
 
@@ -109,5 +126,41 @@ mod tests {
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         player.fold();
         player.fold();
+    }
+
+    #[test]
+    fn bet_check_normal() {
+        let mut player = Player::new();
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        const BET_AMOUNT: i32 = 20;
+        player.bet(BET_AMOUNT);
+        player.bet(BET_AMOUNT);
+        player.bet(BET_AMOUNT);
+        if let PlayerState::Active(a) = player.player_state {
+            assert_eq!(a.current_bet, BET_AMOUNT * 3)
+        } else {
+            panic!("Player wasn't in active state after betting.")
+        }
+    }
+
+    #[test]
+    fn bet_all_in() {
+        let mut player = Player::new();
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.bet(DEFAULT_START_MONEY);
+        player.bet(DEFAULT_START_MONEY);
+        player.bet(DEFAULT_START_MONEY);
+        if let PlayerState::Active(a) = player.player_state {
+            assert_eq!(a.current_bet, DEFAULT_START_MONEY)
+        } else {
+            panic!("Player wasn't in active state after going all in.")
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn bet_inactive() {
+        let mut player = Player::new();
+        player.bet(DEFAULT_START_MONEY);
     }
 }
