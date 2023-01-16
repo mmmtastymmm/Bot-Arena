@@ -15,7 +15,8 @@ pub struct Table {
     turn: Option<Card>,
     river: Option<Card>,
     dealer_button_index: usize,
-    current_index: usize,
+    ante: i32,
+    hand_number: i32,
 }
 
 impl fmt::Display for Table {
@@ -44,8 +45,8 @@ impl fmt::Display for Table {
             turn: turn_string,
             river: river_string,
             dealer_button_index: self.dealer_button_index,
-            current_index: self.current_index,
-            players: player_strings
+            players: player_strings,
+            hand_number: self.hand_number,
         };
 
         write!(f, "{}", json_object.dump())
@@ -64,7 +65,8 @@ impl Table {
             turn: None,
             river: None,
             dealer_button_index: 0,
-            current_index: 0,
+            ante: 1,
+            hand_number: 0,
         }
     }
 
@@ -79,20 +81,43 @@ impl Table {
     pub fn take_action(&mut self) {}
 
     pub fn deal(&mut self) {
+        // Make a deck
         let deck = Card::generate_shuffled_deck();
         let mut deck_iterator = deck.iter();
+        // Pick the table cards
         self.flop = Option::from([*deck_iterator.next().unwrap(),
             *deck_iterator.next().unwrap(),
             *deck_iterator.next().unwrap(),
         ]);
-
         self.turn = Option::from(*deck_iterator.next().unwrap());
         self.river = Option::from(*deck_iterator.next().unwrap());
 
+        // Check if players died on the past round
         for player in &mut self.players {
-            let card1 = *deck_iterator.next().unwrap();
-            let card2 = *deck_iterator.next().unwrap();
-            player.deal([card1, card2])
+            if player.death_hand_number.is_none() && player.total_money < self.ante {
+                player.death_hand_number = Some(self.hand_number)
+            }
+        }
+        // Deal every alive player cards now
+        for player in &mut self.players {
+            if player.is_alive() {
+                let card1 = *deck_iterator.next().unwrap();
+                let card2 = *deck_iterator.next().unwrap();
+                player.deal([card1, card2])
+            }
+        }
+
+        // Increment the hand number
+        self.hand_number += 1;
+        // set the next dealer index by finding the next alive player
+        self.dealer_button_index += 1;
+        loop {
+            if self.dealer_button_index + 1 >= self.get_player_count() {
+                self.dealer_button_index = 0;
+            }
+            if self.players.get(self.dealer_button_index).unwrap().is_alive() {
+                break;
+            }
         }
     }
 }
@@ -159,7 +184,7 @@ mod tests {
         assert!(string.contains("\"turn\":\"["));
         assert!(string.contains("\"river\":\"["));
         assert!(string.contains("\"dealer_button_index\":"));
-        assert!(string.contains("\"current_index\":"));
+        assert!(string.contains("\"hand_number\":"));
         assert!(string.contains("\"players\":["));
         assert!(string.contains("Active"));
         assert!(!string.contains("Folded"));
@@ -176,7 +201,7 @@ mod tests {
         assert!(string.contains("\"turn\":\"None"));
         assert!(string.contains("\"river\":\"None"));
         assert!(string.contains("\"dealer_button_index\":"));
-        assert!(string.contains("\"current_index\":"));
+        assert!(string.contains("\"hand_number\":"));
         assert!(string.contains("\"players\":["));
         assert!(string.contains("Folded"));
         assert!(!string.contains("Active"));

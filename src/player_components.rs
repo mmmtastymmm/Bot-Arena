@@ -24,6 +24,7 @@ pub struct Player {
     pub player_state: PlayerState,
     pub total_money: i32,
     pub is_all_in: bool,
+    pub death_hand_number: Option<i32>,
 }
 
 impl fmt::Display for PlayerState {
@@ -53,7 +54,7 @@ impl fmt::Display for Player {
 
 impl Player {
     pub fn new() -> Self {
-        Player { player_state: Folded, total_money: DEFAULT_START_MONEY, is_all_in: false }
+        Player { player_state: Folded, total_money: DEFAULT_START_MONEY, is_all_in: false, death_hand_number: None }
     }
 
     pub fn deal(&mut self, cards: [Card; 2]) {
@@ -70,7 +71,10 @@ impl Player {
     }
 
     pub fn is_alive(self) -> bool {
-        self.total_money > 0 && !self.is_all_in
+        match self.death_hand_number {
+            None => { true }
+            Some(_) => { false }
+        }
     }
 
     pub fn bet(&mut self, bet: i32) {
@@ -136,6 +140,8 @@ mod tests {
         }
         // Fold and check the player goes to back to inactive
         player.fold();
+        // Indicate they are dead by setting the round they died
+        player.death_hand_number = Some(0);
         // Check they are dead now
         let is_dead = !player.is_alive();
         assert!(is_dead);
