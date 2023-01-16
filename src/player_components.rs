@@ -95,8 +95,6 @@ impl Player {
 mod tests {
     use poker::{Card, Rank, Suit};
 
-    use json::parse;
-
     use crate::player_components::{ActiveState, DEFAULT_START_MONEY, Player, PlayerState};
 
     #[test]
