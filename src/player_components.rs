@@ -23,7 +23,6 @@ pub struct ActiveState {
 pub struct Player {
     pub player_state: PlayerState,
     pub total_money: i32,
-    pub is_all_in: bool,
 }
 
 impl fmt::Display for PlayerState {
@@ -44,16 +43,15 @@ impl fmt::Display for PlayerState {
 impl fmt::Display for Player {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f,
-               "{{\"Player\": {{\"Player state\": {}, \"Total money\": {}, \"Is all in?\": {}}}}}",
+               "{{\"Player\": {{\"Player state\": {}, \"Total money\": {}}}}}",
                self.player_state,
-               self.total_money,
-               self.is_all_in)
+               self.total_money)
     }
 }
 
 impl Player {
     pub fn new() -> Self {
-        Player { player_state: Folded, total_money: DEFAULT_START_MONEY, is_all_in: false }
+        Player { player_state: Folded, total_money: DEFAULT_START_MONEY }
     }
 
     pub fn deal(&mut self, cards: [Card; 2]) {
@@ -70,7 +68,7 @@ impl Player {
     }
 
     pub fn is_alive(self) -> bool {
-        self.total_money > 0 && !self.is_all_in
+        self.total_money > 0
     }
 
     pub fn bet(&mut self, bet: i32) {
@@ -79,7 +77,6 @@ impl Player {
             if next_bet_total >= self.total_money {
                 // Bet more than possible, they are going all in now
                 a.current_bet = self.total_money;
-                self.is_all_in = true;
             } else {
                 // Normal bet occurred
                 a.current_bet = next_bet_total;
@@ -174,7 +171,6 @@ mod tests {
         player.bet(DEFAULT_START_MONEY);
         if let PlayerState::Active(a) = player.player_state {
             assert_eq!(a.current_bet, DEFAULT_START_MONEY);
-            assert!(player.is_all_in);
         } else {
             panic!("Player wasn't in active state after going all in.")
         }
@@ -187,7 +183,6 @@ mod tests {
         player.bet(DEFAULT_START_MONEY);
         if let PlayerState::Active(a) = player.player_state {
             assert_eq!(a.current_bet, DEFAULT_START_MONEY);
-            assert!(player.is_all_in);
         } else {
             panic!("Player wasn't in active state after going all in.")
         }
@@ -230,6 +225,6 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json_parsed_string,
-            "{\"Player\":{\"Player state\":{\"State Type\":\"Active\",\"Details\":{\"Hand\":\"[ A♣ ] [ A♥ ]\",\"Bet\":500}},\"Total money\":500,\"Is all in?\":true}}")
+            "{\"Player\":{\"Player state\":{\"State Type\":\"Active\",\"Details\":{\"Hand\":\"[ A♣ ] [ A♥ ]\",\"Bet\":500}},\"Total money\":500}}")
     }
 }
