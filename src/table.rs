@@ -6,7 +6,7 @@ use poker::{Card, Evaluator};
 
 use json::object;
 
-use crate::player_components::Player;
+use crate::player_components::{Player, PlayerState};
 
 pub struct Table {
     players: Vec<Player>,
@@ -98,7 +98,21 @@ impl Table {
 
     pub fn sort_by_hands(&mut self) {
         let total_hand = vec![*self.flop.unwrap().get(0).unwrap(), *self.flop.unwrap().get(1).unwrap(), *self.flop.unwrap().get(2).unwrap(), self.turn.unwrap(), self.river.unwrap()];
-        self.players.sort_by(|a, b| self.evaluator.evaluate(total_hand.clone().add(a)) > self.evaluator.evaluate(b))
+        self.players.sort_by(|player1, player2| {
+            let mut a_set = total_hand.clone();
+            if let PlayerState::Active(a) = &player1.player_state {
+                a_set.extend(a.hand.iter());
+            }
+
+            let mut b_set = total_hand.clone();
+            if let PlayerState::Active(b) = &player2.player_state {
+                b_set.extend(b.hand.iter());
+            }
+            let a = self.evaluator.evaluate(a_set).expect("Couldn't evaluate hand 1");
+            let b = self.evaluator.evaluate(b_set).expect("Couldn't evaulate hand 2");
+            a.cmp(&b)
+        }
+        )
     }
 }
 
