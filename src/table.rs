@@ -109,7 +109,7 @@ impl Table {
                 b_set.extend(b.hand.iter());
             }
             let a = self.evaluator.evaluate(a_set).expect("Couldn't evaluate hand 1");
-            let b = self.evaluator.evaluate(b_set).expect("Couldn't evaulate hand 2");
+            let b = self.evaluator.evaluate(b_set).expect("Couldn't evaluate hand 2");
             a.cmp(&b)
         }
         )
