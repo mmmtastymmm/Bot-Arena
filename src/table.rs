@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use poker::{Card, Evaluator};
 
-use json::array;
 use json::object;
 
 use crate::player_components::Player;
@@ -164,5 +163,22 @@ mod tests {
         assert!(string.contains("\"players\":["));
         assert!(string.contains("Active"));
         assert!(!string.contains("Folded"));
+    }
+
+    #[test]
+    pub fn test_print_no_deal()
+    {
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let table = Table::new(23, shared_evaluator);
+        let string = table.to_string();
+        println!("{}", string);
+        assert!(string.contains("\"flop\":\"None"));
+        assert!(string.contains("\"turn\":\"None"));
+        assert!(string.contains("\"river\":\"None"));
+        assert!(string.contains("\"dealer_button_index\":"));
+        assert!(string.contains("\"current_index\":"));
+        assert!(string.contains("\"players\":["));
+        assert!(string.contains("Folded"));
+        assert!(!string.contains("Active"));
     }
 }
