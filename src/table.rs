@@ -103,7 +103,7 @@ impl Table {
             if player.is_alive() {
                 let card1 = *deck_iterator.next().unwrap();
                 let card2 = *deck_iterator.next().unwrap();
-                player.deal([card1, card2])
+                player.deal([card1, card2]);
             }
         }
 
