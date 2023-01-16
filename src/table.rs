@@ -96,6 +96,7 @@ impl Table {
         }
     }
 
+    // TODO: Take a copy vec of players, clone from other method and pass into here
     pub fn sort_by_hands(&mut self) {
         let total_hand = vec![*self.flop.unwrap().get(0).unwrap(), *self.flop.unwrap().get(1).unwrap(), *self.flop.unwrap().get(2).unwrap(), self.turn.unwrap(), self.river.unwrap()];
         self.players.sort_by(|player1, player2| {
