@@ -5,7 +5,6 @@ enum Actions {
     Fold,
     Call,
     Raise(i32),
-    Check,
 }
 
 impl fmt::Display for Actions {
@@ -14,7 +13,6 @@ impl fmt::Display for Actions {
             Actions::Fold => { write!(f, "Fold") }
             Actions::Call => { write!(f, "Call") }
             Actions::Raise(a) => { write!(f, "Raise: {}", a) }
-            Actions::Check => { write!(f, "Check") }
         }
     }
 }
@@ -27,7 +25,6 @@ mod tests {
     pub fn test_print() {
         assert_eq!(Actions::Call.to_string(), "Call");
         assert_eq!(Actions::Fold.to_string(), "Fold");
-        assert_eq!(Actions::Check.to_string(), "Check");
         assert_eq!(Actions::Raise(23).to_string(), "Raise: 23");
     }
 }
