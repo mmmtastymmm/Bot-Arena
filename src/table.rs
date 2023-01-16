@@ -1,6 +1,11 @@
+use std::fmt;
+use std::fmt::Formatter;
 use std::sync::Arc;
 
 use poker::{Card, Evaluator};
+
+use json::array;
+use json::object;
 
 use crate::player_components::Player;
 
@@ -10,6 +15,42 @@ pub struct Table {
     flop: Option<[Card; 3]>,
     turn: Option<Card>,
     river: Option<Card>,
+    dealer_button_index: usize,
+    current_index: usize,
+}
+
+impl fmt::Display for Table {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let flop_string = {
+            match self.flop {
+                None => { "None".to_string() }
+                Some(a) => { format!("{} {} {}", a[0], a[1], a[2]) }
+            }
+        };
+        let turn_string = {
+            match self.turn {
+                None => { "None".to_string() }
+                Some(a) => { a.to_string() }
+            }
+        };
+        let river_string = {
+            match self.river {
+                None => { "None".to_string() }
+                Some(a) => { a.to_string() }
+            }
+        };
+        let player_strings: Vec<_> = self.players.iter().map(|x| json::parse(&x.to_string()).unwrap()).collect();
+        let json_object = object! {
+            flop: flop_string,
+            turn: turn_string,
+            river: river_string,
+            dealer_button_index: self.dealer_button_index,
+            current_index: self.current_index,
+            players: player_strings
+        };
+
+        write!(f, "{}", json_object.dump())
+    }
 }
 
 impl Table {
@@ -23,12 +64,20 @@ impl Table {
             flop: None,
             turn: None,
             river: None,
+            dealer_button_index: 0,
+            current_index: 0,
         }
     }
 
     pub fn get_player_count(&self) -> usize {
         self.players.len()
     }
+
+    pub fn get_current_state(&self) -> String {
+        "".to_string()
+    }
+
+    pub fn take_action(&mut self) {}
 
     pub fn deal(&mut self) {
         let deck = Card::generate_shuffled_deck();
@@ -80,7 +129,7 @@ mod tests {
             match player.player_state {
                 PlayerState::Folded => {}
                 PlayerState::Active(a) => {
-                    for card in &a.hand.cards {
+                    for card in &a.hand {
                         cards.insert(card.to_string());
                     }
                 }
@@ -98,5 +147,22 @@ mod tests {
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(24, shared_evaluator);
         table.deal()
+    }
+
+    #[test]
+    pub fn test_print() {
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(23, shared_evaluator);
+        table.deal();
+        let string = table.to_string();
+        println!("{}", string);
+        assert!(string.contains("\"flop\":\"["));
+        assert!(string.contains("\"turn\":\"["));
+        assert!(string.contains("\"river\":\"["));
+        assert!(string.contains("\"dealer_button_index\":"));
+        assert!(string.contains("\"current_index\":"));
+        assert!(string.contains("\"players\":["));
+        assert!(string.contains("Active"));
+        assert!(!string.contains("Folded"));
     }
 }
