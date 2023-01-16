@@ -6,7 +6,7 @@ use poker::{Card, Evaluator};
 
 use json::object;
 
-use crate::player_components::Player;
+use crate::player_components::{Player, PlayerState};
 
 pub struct Table {
     players: Vec<Player>,
@@ -81,6 +81,18 @@ impl Table {
     pub fn take_action(&mut self) {}
 
     pub fn deal(&mut self) {
+        // Increment the hand number
+        self.hand_number += 1;
+        // set the next dealer index by finding the next alive player
+        self.dealer_button_index += 1;
+        loop {
+            if self.dealer_button_index + 1 >= self.get_player_count() {
+                self.dealer_button_index = 0;
+            }
+            if self.players.get(self.dealer_button_index).unwrap().is_alive() {
+                break;
+            }
+        }
         // Make a deck
         let deck = Card::generate_shuffled_deck();
         let mut deck_iterator = deck.iter();
@@ -104,19 +116,9 @@ impl Table {
                 let card1 = *deck_iterator.next().unwrap();
                 let card2 = *deck_iterator.next().unwrap();
                 player.deal([card1, card2]);
-            }
-        }
-
-        // Increment the hand number
-        self.hand_number += 1;
-        // set the next dealer index by finding the next alive player
-        self.dealer_button_index += 1;
-        loop {
-            if self.dealer_button_index + 1 >= self.get_player_count() {
-                self.dealer_button_index = 0;
-            }
-            if self.players.get(self.dealer_button_index).unwrap().is_alive() {
-                break;
+                if let PlayerState::Active(a) = &mut player.player_state {
+                    a.current_bet += self.ante
+                }
             }
         }
     }
