@@ -185,6 +185,7 @@ mod tests {
         let shared_evaluator = Arc::new(Evaluator::new());
         const PLAYER_SIZE: usize = 23;
         let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
+        // Add a player that will die sooner
         table.players.get_mut(0).unwrap().total_money = 100;
         // Deal the largest table size allowed
         for _ in 0..DEFAULT_START_MONEY {
