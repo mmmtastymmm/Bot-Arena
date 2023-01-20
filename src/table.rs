@@ -57,8 +57,12 @@ impl Table {
         if number_of_players > 23 {
             panic!("Too many players for one table!")
         }
+        let mut players = Vec::new();
+        for i in 0..number_of_players {
+            players.push(Player::new(i as i8))
+        }
         Table {
-            players: vec![Player::new(); number_of_players],
+            players,
             evaluator,
             flop: None,
             turn: None,
@@ -134,6 +138,9 @@ mod tests {
                 }
             }
         }
+
+        let number_of_unique_ids: HashSet<i8> = HashSet::from_iter(table.players.into_iter().map(|x| x.get_id()));
+        assert_eq!(number_of_unique_ids.len(), PLAYER_SIZE);
 
         // Check the card size is 2 * players + 5 for the 5 shared cards
         assert_eq!(5 + 2 * PLAYER_SIZE, cards.len());

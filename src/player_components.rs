@@ -23,6 +23,7 @@ pub struct ActiveState {
 pub struct Player {
     pub player_state: PlayerState,
     pub total_money: i32,
+    id: i8,
 }
 
 impl fmt::Display for PlayerState {
@@ -50,8 +51,8 @@ impl fmt::Display for Player {
 }
 
 impl Player {
-    pub fn new() -> Self {
-        Player { player_state: Folded, total_money: DEFAULT_START_MONEY }
+    pub fn new(id: i8) -> Self {
+        Player { player_state: Folded, total_money: DEFAULT_START_MONEY, id }
     }
 
     pub fn deal(&mut self, cards: [Card; 2]) {
@@ -69,6 +70,10 @@ impl Player {
 
     pub fn is_alive(self) -> bool {
         self.total_money > 0
+    }
+
+    pub fn get_id(&self) -> i8 {
+        self.id
     }
 
     pub fn bet(&mut self, bet: i32) {
@@ -97,7 +102,7 @@ mod tests {
     #[test]
     fn test_player_deal() {
         const BET_AMOUNT: i32 = DEFAULT_START_MONEY / 2;
-        let mut player = Player::new();
+        let mut player = Player::new(0);
         assert_eq!(player.total_money, DEFAULT_START_MONEY);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         if let PlayerState::Active(a) = &mut player.player_state {
@@ -120,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_player_dead() {
-        let mut player = Player::new();
+        let mut player = Player::new(0);
         assert_eq!(player.total_money, DEFAULT_START_MONEY);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         if let PlayerState::Active(a) = &mut player.player_state {
@@ -141,7 +146,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn fold_twice() {
-        let mut player = Player::new();
+        let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         player.fold();
         player.fold();
@@ -149,7 +154,7 @@ mod tests {
 
     #[test]
     fn bet_check_normal() {
-        let mut player = Player::new();
+        let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         const BET_AMOUNT: i32 = 20;
         player.bet(BET_AMOUNT);
@@ -164,7 +169,7 @@ mod tests {
 
     #[test]
     fn bet_all_in() {
-        let mut player = Player::new();
+        let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         player.bet(DEFAULT_START_MONEY);
         player.bet(DEFAULT_START_MONEY);
@@ -178,7 +183,7 @@ mod tests {
 
     #[test]
     fn bet_all_in_1_bet() {
-        let mut player = Player::new();
+        let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         player.bet(DEFAULT_START_MONEY);
         if let PlayerState::Active(a) = player.player_state {
@@ -191,7 +196,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn bet_inactive() {
-        let mut player = Player::new();
+        let mut player = Player::new(0);
         player.bet(DEFAULT_START_MONEY);
     }
 
@@ -218,7 +223,7 @@ mod tests {
 
     #[test]
     fn test_player_string() {
-        let mut player = Player::new();
+        let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         player.bet(DEFAULT_START_MONEY);
         let string_version = player.to_string();
