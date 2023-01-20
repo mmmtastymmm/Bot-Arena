@@ -186,7 +186,7 @@ mod tests {
         const PLAYER_SIZE: usize = 23;
         let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
         // Deal the largest table size allowed
-        for _ in 0..200 {
+        for _ in 0..DEFAULT_START_MONEY {
             table.deal();
         }
     }
