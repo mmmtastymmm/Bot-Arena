@@ -232,4 +232,11 @@ mod tests {
             json_parsed_string,
             "{\"Player\":{\"Player state\":{\"State Type\":\"Active\",\"Details\":{\"Hand\":\"[ A♣ ] [ A♥ ]\",\"Bet\":500}},\"Total money\":500}}")
     }
+
+    #[test]
+    fn test_get_id() {
+        const ID: i8 = 0;
+        let player = Player::new(ID);
+        assert_eq!(player.get_id(), ID);
+    }
 }
