@@ -120,6 +120,8 @@ mod tests {
         let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
         // Deal the largest table size allowed
         table.deal();
+        // Make read only now
+        let table = table;
         // Make a set to make sure there are unique cards
         let mut cards = HashSet::new();
         for card in &table.flop.unwrap() {
