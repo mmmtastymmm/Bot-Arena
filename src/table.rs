@@ -180,6 +180,18 @@ mod tests {
     }
 
     #[test]
+    pub fn test_lots_of_deals() {
+        // Required for the table evaluator
+        let shared_evaluator = Arc::new(Evaluator::new());
+        const PLAYER_SIZE: usize = 23;
+        let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
+        // Deal the largest table size allowed
+        for _ in 0..200 {
+            table.deal();
+        }
+    }
+
+    #[test]
     #[should_panic]
     pub fn test_deal_too_many_players() {
         // Add to many players and expect a panic
