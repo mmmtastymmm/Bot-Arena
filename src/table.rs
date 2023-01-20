@@ -2,9 +2,8 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::sync::Arc;
 
-use poker::{Card, Evaluator};
-
 use json::object;
+use poker::{Card, Evaluator};
 
 use crate::player_components::{Player, PlayerState};
 
@@ -132,7 +131,7 @@ mod tests {
 
     use poker::Evaluator;
 
-    use crate::player_components::PlayerState;
+    use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
 
     #[test]
@@ -164,6 +163,20 @@ mod tests {
 
         // Check the card size is 2 * players + 5 for the 5 shared cards
         assert_eq!(5 + 2 * PLAYER_SIZE, cards.len());
+    }
+
+    #[test]
+    pub fn test_deal_with_dead_players() {
+        // Required for the table evaluator
+        let shared_evaluator = Arc::new(Evaluator::new());
+        const PLAYER_SIZE: usize = 23;
+        let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
+        // Deal the largest table size allowed
+        table.players.get_mut(0).unwrap().total_money = 0;
+        table.deal();
+        // Make sure one player has died.
+        let alive_players = table.players.into_iter().map(|x| if x.is_alive() { 1 } else { 0 }).reduce(|x, y| x + y).unwrap();
+        assert_eq!(alive_players, PLAYER_SIZE as i32 - 1);
     }
 
     #[test]
