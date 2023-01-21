@@ -175,7 +175,7 @@ mod tests {
         table.players.get_mut(0).unwrap().total_money = 0;
         table.deal();
         // Make sure one player has died.
-        let alive_players = table.players.into_iter().map(|x| if x.is_alive() { 1 } else { 0 }).reduce(|x, y| x + y).unwrap();
+        let alive_players = table.players.into_iter().map(|x| i32::from(x.is_alive())).reduce(|x, y| x + y).unwrap();
         assert_eq!(alive_players, PLAYER_SIZE as i32 - 1);
     }
 
