@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fmt::Formatter;
-use std::str::FromStr;
 
 use json::object;
 
@@ -25,22 +24,6 @@ impl fmt::Display for Actions {
         write!(f, "{}", json_object)
     }
 }
-
-// impl FromStr for Actions{
-//     type Err = ();
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         let s = s.to_lowercase();
-//         let s_slice = s.as_str();
-//         match s_slice {
-//             "fold" => Ok(Actions::Fold),
-//             "check" => Ok(Actions::Check),
-//             "call" => Ok(Actions::Call),
-//             "raise: 4" => Ok(Actions::Raise(4)),
-//             _ => Err(())
-//         }
-//     }
-// }
 
 #[cfg(test)]
 mod tests {
