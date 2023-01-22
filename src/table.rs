@@ -101,6 +101,21 @@ impl Table {
         }
     }
 
+    /// Translates the flop into a human readable string
+    pub fn get_flop_string_secret(&self) -> String {
+        match self.flop {
+            None => { "None".to_string() }
+            Some(cards) => {
+                match self.table_state.bet_stage {
+                    BetStage::PreFlop => { "Hidden".to_string() }
+                    BetStage::Flop => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+                    BetStage::Turn => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+                    BetStage::River => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+                }
+            }
+        }
+    }
+
     /// Translates the turn into a human readable string
     pub fn get_turn_string(&self) -> String {
         match self.turn {
@@ -109,11 +124,39 @@ impl Table {
         }
     }
 
+    pub fn get_turn_string_secret(&self) -> String {
+        match self.turn {
+            None => { "None".to_string() }
+            Some(card) => {
+                match self.table_state.bet_stage {
+                    BetStage::PreFlop => { "Hidden".to_string() }
+                    BetStage::Flop => { "Hidden".to_string() }
+                    BetStage::Turn => { card.to_string() }
+                    BetStage::River => { card.to_string() }
+                }
+            }
+        }
+    }
+
     /// Translates the river into a human readable string
     pub fn get_river_string(&self) -> String {
         match self.river {
             None => { "None".to_string() }
             Some(card) => { card.to_string() }
+        }
+    }
+
+    pub fn get_river_string_secret(&self) -> String {
+        match self.river {
+            None => { "None".to_string() }
+            Some(card) => {
+                match self.table_state.bet_stage {
+                    BetStage::PreFlop => { "Hidden".to_string() }
+                    BetStage::Flop => { "Hidden".to_string() }
+                    BetStage::Turn => { "Hidden".to_string() }
+                    BetStage::River => { card.to_string() }
+                }
+            }
         }
     }
 
@@ -204,9 +247,9 @@ impl Table {
     pub fn get_state_string_for_player(&self, id: i8) -> JsonValue {
         let player_strings: Vec<_> = self.players.iter().map(|x| if (x.get_id() == id) { x.to_json() } else { x.to_json_no_secret_data() }).collect();
         object! {
-            flop: self.get_flop_string(),
-            turn: self.get_turn_string(),
-            river: self.get_river_string(),
+            flop: self.get_flop_string_secret(),
+            turn: self.get_turn_string_secret(),
+            river: self.get_river_string_secret(),
             dealer_button_index: self.dealer_button_index,
             players: player_strings,
             hand_number: self.hand_number,
@@ -330,5 +373,15 @@ mod tests {
         assert!(string.contains("\"players\":["));
         assert!(string.contains("folded"));
         assert!(!string.contains("active"));
+    }
+
+    #[test]
+    pub fn check_only_one_card_returned_with_string() {
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(23, shared_evaluator);
+        table.deal();
+        let json_string = table.get_state_string_for_player(0).to_string();
+        // Three open brackets, one for the player list and 2 for each open card bracket.
+        assert_eq!(json_string.matches('[').count(), 3);
     }
 }
