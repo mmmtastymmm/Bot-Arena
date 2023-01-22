@@ -175,8 +175,14 @@ impl Table {
             self.deal();
         }
         // If the game is over print out a message
-        if self.is_game_over() {}
+        if self.is_game_over() {
+            // println!("Game is over! Results are included below:\n{}", self.get_results())
+        }
     }
+
+    // pub fn get_results(&self) -> String{
+    //
+    // }
 
     /// Gets the current turn information
     pub fn get_current_turn_information(&mut self) -> JsonValue {

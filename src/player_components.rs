@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -67,6 +68,37 @@ impl fmt::Display for Player {
     }
 }
 
+impl Eq for Player {}
+
+impl PartialEq<Self> for Player {
+    fn eq(&self, other: &Self) -> bool {
+        self.death_hand_number == other.death_hand_number
+    }
+}
+
+impl PartialOrd<Self> for Player {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Player {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // If players are both alive return whichever has more money
+        if self.is_alive() && other.is_alive() {
+            return self.total_money.cmp(&other.total_money);
+        } else if self.is_alive() {
+            // Only self is alive so it is greater
+            return Ordering::Greater;
+        } else if other.death_hand_number.is_none() {
+            // Compared to other hand that is alive while self is dead, so it is less than
+            return Ordering::Less;
+        }
+        // Both players are dead, prefer which round died on (money left doesn't matter now)
+        self.death_hand_number.unwrap().cmp(&other.death_hand_number.unwrap())
+    }
+}
+
 impl Player {
     /// Generates a new player with the given id
     pub fn new(id: i8) -> Self {
@@ -131,6 +163,9 @@ impl Player {
 #[cfg(test)]
 mod tests {
     use poker::{Card, Rank, Suit};
+
+    use rand::thread_rng;
+    use rand::seq::SliceRandom;
 
     use crate::player_components::{ActiveState, DEFAULT_START_MONEY, Player, PlayerState};
 
@@ -287,5 +322,26 @@ mod tests {
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
             json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"bet\":500}},\"id\":0,\"total_money\":500}}").unwrap())
+    }
+
+    #[test]
+    fn test_player_order() {
+        // Make 10 players, each with a different death hand number
+        let mut players = vec![];
+        for i in 0..10 {
+            players.push(Player::new(i));
+            players.get_mut(i as usize).unwrap().death_hand_number = Some(i as i32);
+        }
+        // Make the last one still alive
+        players.last_mut().unwrap().death_hand_number = None;
+        // Shuffle the players
+        players.shuffle(&mut thread_rng());
+        // Sort them to ensure the comp works correctly
+        players.sort();
+        // Make sure the order
+        for i in 0..10 {
+            let player_id = players.get(i).unwrap().id;
+            assert_eq!(player_id, i as i8)
+        }
     }
 }
