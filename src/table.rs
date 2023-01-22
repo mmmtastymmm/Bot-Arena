@@ -1,8 +1,9 @@
 use std::fmt;
 use std::fmt::Formatter;
+use std::slice::Iter;
 use std::sync::Arc;
 
-use json::object;
+use json::{JsonValue, object};
 use poker::{Card, Evaluator};
 
 use crate::player_components::{Player, PlayerState};
@@ -16,12 +17,19 @@ pub struct Table {
     dealer_button_index: usize,
     ante: i32,
     hand_number: i32,
-    current_turn: usize,
+    current_player_index: usize,
 }
 
 pub struct Turn {
     turn: usize,
     info_str: String,
+}
+
+pub enum BetStage {
+    PreFlop,
+    Flop,
+    Turn,
+    River,
 }
 
 impl fmt::Display for Table {
@@ -59,7 +67,7 @@ impl Table {
             dealer_button_index: INITIAL_INDEX,
             ante: 1,
             hand_number: 0,
-            current_turn: INITIAL_INDEX,
+            current_player_index: INITIAL_INDEX,
         }
     }
 
@@ -96,7 +104,9 @@ impl Table {
     pub fn take_action(&mut self) {}
 
     /// Gets the current turn information
-    pub fn get_current_turn_information(&mut self) {}
+    pub fn get_current_turn_information(&mut self) -> JsonValue {
+        self.get_state_string_for_player(self.players.get(self.current_player_index).unwrap().get_id())
+    }
 
     /// Deals cards to all players that are still alive,
     /// marks any dead players with their death turn number,
@@ -105,6 +115,20 @@ impl Table {
     pub fn deal(&mut self) {
         // Increment the hand number
         self.hand_number += 1;
+        // Check all players for death
+        self.check_for_player_death();
+        // Find the next alive player index for dealer button
+        self.find_next_deal_button_index();
+        // Make a deck
+        let deck = Card::generate_shuffled_deck();
+        let mut deck_iterator = deck.iter();
+        // Deal cards to the players and the table
+        self.deal_table_cards(&mut deck_iterator);
+        self.deal_cards_collect_ante(&mut deck_iterator);
+    }
+
+    /// Finds the next dealer button index (next player in the list that is alive
+    fn find_next_deal_button_index(&mut self) {
         // set the next dealer index by finding the next alive player
         self.dealer_button_index += 1;
         loop {
@@ -115,10 +139,10 @@ impl Table {
                 break;
             }
         }
-        // Make a deck
-        let deck = Card::generate_shuffled_deck();
-        let mut deck_iterator = deck.iter();
-        // Pick the table cards
+    }
+
+    /// Deals cards for the flop, turn, and river
+    fn deal_table_cards(&mut self, deck_iterator: &mut Iter<Card>) {
         self.flop = Option::from([
             *deck_iterator.next().unwrap(),
             *deck_iterator.next().unwrap(),
@@ -126,13 +150,20 @@ impl Table {
         ]);
         self.turn = Option::from(*deck_iterator.next().unwrap());
         self.river = Option::from(*deck_iterator.next().unwrap());
+    }
 
+    /// Mark all players that died from the last round as dead now
+    fn check_for_player_death(&mut self) {
         // Check if players died on the past round
         for player in &mut self.players {
             if player.death_hand_number.is_none() && player.total_money < self.ante {
                 player.death_hand_number = Some(self.hand_number)
             }
         }
+    }
+
+    /// Deal cards to the alive players and collect the ante from them.
+    fn deal_cards_collect_ante(&mut self, deck_iterator: &mut Iter<Card>) {
         // Deal every alive player cards now
         for player in &mut self.players {
             if player.is_alive() {
@@ -143,6 +174,18 @@ impl Table {
                     a.current_bet += self.ante
                 }
             }
+        }
+    }
+
+    pub fn get_state_string_for_player(&self, id: i8) -> JsonValue {
+        let player_strings: Vec<_> = self.players.iter().map(|x| if (x.get_id() == id) { x.to_json() } else { x.to_json_no_secret_data() }).collect();
+        object! {
+            flop: self.get_flop_string(),
+            turn: self.get_turn_string(),
+            river: self.get_river_string(),
+            dealer_button_index: self.dealer_button_index,
+            players: player_strings,
+            hand_number: self.hand_number,
         }
     }
 }
