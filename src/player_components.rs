@@ -349,12 +349,16 @@ mod tests {
     fn test_alive_player_order() {
         let mut player1 = Player::new(0);
         let mut player2 = Player::new(1);
+        let mut player_dead = Player::new(2);
 
         player1.total_money = 1;
         player2.total_money = 2;
+        player_dead.death_hand_number = Some(1);
         assert!(player1 < player2);
         assert!(player2 > player1);
         assert!(player1 == player1);
+        assert!(player_dead < player1);
+        assert!(player1 > player_dead);
     }
 
     #[test]
