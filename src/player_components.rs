@@ -359,6 +359,7 @@ mod tests {
         assert!(player1 == player1);
         assert!(player_dead < player1);
         assert!(player1 > player_dead);
+        assert!(player_dead == player_dead);
     }
 
     #[test]
