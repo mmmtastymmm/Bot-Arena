@@ -353,5 +353,7 @@ mod tests {
         player1.total_money = 1;
         player2.total_money = 2;
         assert!(player1 < player2);
+        assert!(player2 > player1);
+        assert!(player1 == player1);
     }
 }
