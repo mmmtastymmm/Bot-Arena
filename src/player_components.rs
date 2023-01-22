@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Formatter;
 
+use json::{JsonValue, object};
 use poker::Card;
 
 use crate::player_components::PlayerState::{Active, Folded};
@@ -29,14 +30,17 @@ pub struct Player {
 
 impl fmt::Display for PlayerState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let json = self.to_json();
+        write!(f, "{}", json)
+    }
+}
+
+impl PlayerState {
+    pub fn to_json(&self) -> JsonValue {
         match self {
-            Folded => { write!(f, "{{\"State Type\": \"Folded\", \"Details\":{{}}}}") }
+            Folded => { object!(state_type: "folded", details: object! ()) }
             Active(a) => {
-                write!(f,
-                       "{{\"State Type\": \"Active\", \"Details\": {{\"Hand\": \"{} {}\", \"Bet\": {}}}}}",
-                       a.hand[0],
-                       a.hand[1],
-                       a.current_bet)
+                object!(state_type: "active", details: object!(hand: format!("{} {}", a.hand[0], a.hand[1]), bet: a.current_bet))
             }
         }
     }
@@ -45,9 +49,9 @@ impl fmt::Display for PlayerState {
 impl fmt::Display for Player {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f,
-               "{{\"Player\": {{\"Player state\": {}, \"Total money\": {}}}}}",
-               self.player_state,
-               self.total_money)
+               "{}",
+               self.to_json()
+        )
     }
 }
 
@@ -94,8 +98,11 @@ impl Player {
             panic!("Betting in a non-active state is illegal!")
         }
     }
-}
 
+    pub fn to_json(&self) -> JsonValue {
+        object!(player: object! (player_state: self.player_state.to_json(), id: self.id, total_money: self.total_money))
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -212,8 +219,8 @@ mod tests {
         let string_version = state.to_string();
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
-            json_parsed_string,
-            "{\"State Type\":\"Active\",\"Details\":{\"Hand\":\"[ A♣ ] [ A♥ ]\",\"Bet\":30}}")
+            json::parse(&json_parsed_string).unwrap(),
+            json::parse("{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":30}}").unwrap())
     }
 
 
@@ -223,8 +230,8 @@ mod tests {
         let string_version = state.to_string();
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
-            json_parsed_string,
-            "{\"State Type\":\"Folded\",\"Details\":{}}")
+            json::parse(&json_parsed_string).unwrap(),
+            json::parse("{\"state_type\":\"folded\",\"details\":{}}").unwrap())
     }
 
     #[test]
@@ -235,8 +242,8 @@ mod tests {
         let string_version = player.to_string();
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
-            json_parsed_string,
-            "{\"Player\":{\"Player state\":{\"State Type\":\"Active\",\"Details\":{\"Hand\":\"[ A♣ ] [ A♥ ]\",\"Bet\":500}},\"Total money\":500}}")
+            json::parse(&json_parsed_string).unwrap(),
+            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":500}},\"id\":0,\"total_money\":500}}").unwrap())
     }
 
     #[test]
