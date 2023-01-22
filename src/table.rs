@@ -16,6 +16,12 @@ pub struct Table {
     dealer_button_index: usize,
     ante: i32,
     hand_number: i32,
+    current_turn: usize
+}
+
+pub struct Turn {
+    turn: usize,
+    info_str: String,
 }
 
 impl fmt::Display for Table {
@@ -23,19 +29,19 @@ impl fmt::Display for Table {
         let flop_string = {
             match self.flop {
                 None => { "None".to_string() }
-                Some(a) => { format!("{} {} {}", a[0], a[1], a[2]) }
+                Some(cards) => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
             }
         };
         let turn_string = {
             match self.turn {
                 None => { "None".to_string() }
-                Some(a) => { a.to_string() }
+                Some(card) => { card.to_string() }
             }
         };
         let river_string = {
             match self.river {
                 None => { "None".to_string() }
-                Some(a) => { a.to_string() }
+                Some(card) => { card.to_string() }
             }
         };
         let player_strings: Vec<_> = self.players.iter().map(|x| json::parse(&x.to_string()).unwrap()).collect();
@@ -61,15 +67,17 @@ impl Table {
         for i in 0..number_of_players {
             players.push(Player::new(i as i8))
         }
+        const INITIAL_INDEX: usize = 0;
         Table {
             players,
             evaluator,
             flop: None,
             turn: None,
             river: None,
-            dealer_button_index: 0,
+            dealer_button_index: INITIAL_INDEX,
             ante: 1,
             hand_number: 0,
+            current_turn: INITIAL_INDEX,
         }
     }
 
@@ -77,11 +85,9 @@ impl Table {
         self.players.len()
     }
 
-    pub fn get_current_state(&self) -> String {
-        "".to_string()
-    }
-
     pub fn take_action(&mut self) {}
+
+    pub fn get_current_turn_information(&mut self) {}
 
     pub fn deal(&mut self) {
         // Increment the hand number
@@ -224,8 +230,8 @@ mod tests {
         assert!(string.contains("\"dealer_button_index\":"));
         assert!(string.contains("\"hand_number\":"));
         assert!(string.contains("\"players\":["));
-        assert!(string.contains("Active"));
-        assert!(!string.contains("Folded"));
+        assert!(string.contains("active"));
+        assert!(!string.contains("folded"));
     }
 
     #[test]
@@ -241,7 +247,7 @@ mod tests {
         assert!(string.contains("\"dealer_button_index\":"));
         assert!(string.contains("\"hand_number\":"));
         assert!(string.contains("\"players\":["));
-        assert!(string.contains("Folded"));
-        assert!(!string.contains("Active"));
+        assert!(string.contains("folded"));
+        assert!(!string.contains("active"));
     }
 }
