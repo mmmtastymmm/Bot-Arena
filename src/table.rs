@@ -27,6 +27,8 @@ pub struct Table {
     hand_number: i32,
     /// Whose turn it is right now
     current_player_index: usize,
+    /// State needed for table betting information
+    table_state: TableState,
 }
 
 pub struct Turn {
@@ -39,6 +41,11 @@ pub enum BetStage {
     Flop,
     Turn,
     River,
+}
+
+pub struct TableState {
+    bet_stage: BetStage,
+    has_one_bet_occurred_this_round: bool,
 }
 
 impl fmt::Display for Table {
@@ -77,7 +84,13 @@ impl Table {
             ante: 1,
             hand_number: 0,
             current_player_index: INITIAL_INDEX,
+            table_state: TableState { bet_stage: BetStage::PreFlop, has_one_bet_occurred_this_round: false }
         }
+    }
+
+    /// Reset the table state to the starting round state
+    fn reset_state_for_new_round(&mut self) {
+        self.table_state = TableState { bet_stage: BetStage::PreFlop, has_one_bet_occurred_this_round: false }
     }
 
     /// Translates the flop into a human readable string
@@ -124,6 +137,8 @@ impl Table {
     pub fn deal(&mut self) {
         // Increment the hand number
         self.hand_number += 1;
+        // Reset the state for a new round of betting
+        self.reset_state_for_new_round();
         // Check all players for death
         self.check_for_player_death();
         // Find the next alive player index for dealer button
