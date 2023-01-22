@@ -276,4 +276,16 @@ mod tests {
         let player = Player::new(ID);
         assert_eq!(player.get_id(), ID);
     }
+
+    #[test]
+    fn test_no_cards_in_secret() {
+        let mut player = Player::new(0);
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.bet(DEFAULT_START_MONEY);
+        let string_version = player.to_json_no_secret_data().to_string();
+        let json_parsed_string = json::parse(&string_version).unwrap().dump();
+        assert_eq!(
+            json::parse(&json_parsed_string).unwrap(),
+            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"bet\":500}},\"id\":0,\"total_money\":500}}").unwrap())
+    }
 }
