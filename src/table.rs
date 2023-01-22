@@ -6,6 +6,7 @@ use std::sync::Arc;
 use json::{JsonValue, object};
 use poker::{Card, Evaluator};
 
+use crate::actions::Actions;
 use crate::player_components::{Player, PlayerState};
 
 pub struct Table {
@@ -74,7 +75,7 @@ impl Table {
             players.push(Player::new(i as i8))
         }
         const INITIAL_INDEX: usize = 0;
-        Table {
+        let mut table = Table {
             players,
             evaluator,
             flop: None,
@@ -84,8 +85,10 @@ impl Table {
             ante: 1,
             hand_number: 0,
             current_player_index: INITIAL_INDEX,
-            table_state: TableState { bet_stage: BetStage::PreFlop, has_one_bet_occurred_this_round: false }
-        }
+            table_state: TableState { bet_stage: BetStage::PreFlop, has_one_bet_occurred_this_round: false },
+        };
+        table.deal();
+        table
     }
 
     /// Reset the table state to the starting round state
@@ -166,11 +169,37 @@ impl Table {
     }
 
     /// Takes an action, could be recursive if the table needs no input
-    pub fn take_action(&mut self) {}
+    pub fn take_action(&mut self) {
+        // If the table is empty deal cards
+        if self.is_table_clean() {
+            self.deal();
+        }
+        // If the game is over print out a message
+        if self.is_game_over() {}
+    }
 
     /// Gets the current turn information
     pub fn get_current_turn_information(&mut self) -> JsonValue {
         self.get_state_string_for_player(self.players.get(self.current_player_index).unwrap().get_id())
+    }
+
+    /// Cleans all the cards from the table
+    pub fn clean_table(&mut self) {
+        self.flop = None;
+        self.turn = None;
+        self.river = None;
+        for player in &mut self.players {
+            player.fold();
+        }
+    }
+
+    pub fn is_table_clean(&self) -> bool {
+        self.flop.is_none()
+    }
+
+    pub fn is_game_over(&self) -> bool {
+        let alive_player_count = self.players.iter().map(|x| i8::from(x.is_alive())).reduce(|x, y| x + y).unwrap();
+        alive_player_count == 1
     }
 
     /// Deals cards to all players that are still alive,
@@ -245,7 +274,7 @@ impl Table {
     }
 
     pub fn get_state_string_for_player(&self, id: i8) -> JsonValue {
-        let player_strings: Vec<_> = self.players.iter().map(|x| if (x.get_id() == id) { x.to_json() } else { x.to_json_no_secret_data() }).collect();
+        let player_strings: Vec<_> = self.players.iter().map(|x| if x.get_id() == id { x.to_json() } else { x.to_json_no_secret_data() }).collect();
         object! {
             flop: self.get_flop_string_secret(),
             turn: self.get_turn_string_secret(),
@@ -359,20 +388,21 @@ mod tests {
     }
 
     #[test]
-    pub fn test_print_no_deal()
+    pub fn test_print_fold_and_active_players()
     {
         let shared_evaluator = Arc::new(Evaluator::new());
-        let table = Table::new(23, shared_evaluator);
+        let mut table = Table::new(23, shared_evaluator);
+        table.players.get_mut(0).unwrap().fold();
         let string = table.to_string();
         println!("{}", string);
-        assert!(string.contains("\"flop\":\"None"));
-        assert!(string.contains("\"turn\":\"None"));
-        assert!(string.contains("\"river\":\"None"));
+        assert!(string.contains("\"flop\":\"["));
+        assert!(string.contains("\"turn\":\"["));
+        assert!(string.contains("\"river\":\"["));
         assert!(string.contains("\"dealer_button_index\":"));
         assert!(string.contains("\"hand_number\":"));
         assert!(string.contains("\"players\":["));
         assert!(string.contains("folded"));
-        assert!(!string.contains("active"));
+        assert!(string.contains("active"));
     }
 
     #[test]

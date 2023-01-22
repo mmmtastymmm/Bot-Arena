@@ -3,7 +3,7 @@ use std::fmt::Formatter;
 
 use json::object;
 
-enum Actions {
+pub enum Actions {
     Fold,
     Check,
     Call,
