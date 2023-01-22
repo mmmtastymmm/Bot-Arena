@@ -164,8 +164,8 @@ impl Player {
 mod tests {
     use poker::{Card, Rank, Suit};
 
-    use rand::thread_rng;
     use rand::seq::SliceRandom;
+    use rand::thread_rng;
 
     use crate::player_components::{ActiveState, DEFAULT_START_MONEY, Player, PlayerState};
 
@@ -343,5 +343,15 @@ mod tests {
             let player_id = players.get(i).unwrap().id;
             assert_eq!(player_id, i as i8)
         }
+    }
+
+    #[test]
+    fn test_alive_player_order() {
+        let mut player1 = Player::new(0);
+        let mut player2 = Player::new(1);
+
+        player1.total_money = 1;
+        player2.total_money = 2;
+        assert!(player1 < player2);
     }
 }
