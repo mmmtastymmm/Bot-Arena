@@ -356,4 +356,21 @@ mod tests {
         assert!(player2 > player1);
         assert!(player1 == player1);
     }
+
+    #[test]
+    fn test_secret_folded() {
+        // Make a player that has folded their hand
+        let mut player1 = Player::new(0);
+        player1.player_state = PlayerState::Folded;
+        // Get the secret json version
+        let secret_player_json = player1.to_json_no_secret_data();
+        // Make sure it is folded
+        assert_eq!(secret_player_json["player"]["player_state"]["state_type"], "folded");
+        // Make sure there are no cards in the json
+        let player_string = secret_player_json.to_string();
+        let cards = Card::generate_deck();
+        for card in cards {
+            assert!(!player_string.contains(&card.to_string()))
+        }
+    }
 }
