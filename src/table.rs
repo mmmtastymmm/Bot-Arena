@@ -16,7 +16,7 @@ pub struct Table {
     dealer_button_index: usize,
     ante: i32,
     hand_number: i32,
-    current_turn: usize
+    current_turn: usize,
 }
 
 pub struct Turn {
@@ -26,39 +26,21 @@ pub struct Turn {
 
 impl fmt::Display for Table {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let flop_string = {
-            match self.flop {
-                None => { "None".to_string() }
-                Some(cards) => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
-            }
-        };
-        let turn_string = {
-            match self.turn {
-                None => { "None".to_string() }
-                Some(card) => { card.to_string() }
-            }
-        };
-        let river_string = {
-            match self.river {
-                None => { "None".to_string() }
-                Some(card) => { card.to_string() }
-            }
-        };
-        let player_strings: Vec<_> = self.players.iter().map(|x| json::parse(&x.to_string()).unwrap()).collect();
+        let player_strings: Vec<_> = self.players.iter().map(|x| x.to_json()).collect();
         let json_object = object! {
-            flop: flop_string,
-            turn: turn_string,
-            river: river_string,
+            flop: self.get_flop_string(),
+            turn: self.get_turn_string(),
+            river: self.get_river_string(),
             dealer_button_index: self.dealer_button_index,
             players: player_strings,
             hand_number: self.hand_number,
         };
-
         write!(f, "{}", json_object.dump())
     }
 }
 
 impl Table {
+    /// Makes a table of with the specified number of players.
     pub fn new(number_of_players: usize, evaluator: Arc<Evaluator>) -> Self {
         if number_of_players > 23 {
             panic!("Too many players for one table!")
@@ -81,14 +63,45 @@ impl Table {
         }
     }
 
+    /// Translates the flop into a human readable string
+    pub fn get_flop_string(&self) -> String {
+        match self.flop {
+            None => { "None".to_string() }
+            Some(cards) => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+        }
+    }
+
+    /// Translates the turn into a human readable string
+    pub fn get_turn_string(&self) -> String {
+        match self.turn {
+            None => { "None".to_string() }
+            Some(card) => { card.to_string() }
+        }
+    }
+
+    /// Translates the river into a human readable string
+    pub fn get_river_string(&self) -> String {
+        match self.river {
+            None => { "None".to_string() }
+            Some(card) => { card.to_string() }
+        }
+    }
+
+    /// Returns the number of players
     pub fn get_player_count(&self) -> usize {
         self.players.len()
     }
 
+    /// Takes an action, could be recursive if the table needs no input
     pub fn take_action(&mut self) {}
 
+    /// Gets the current turn information
     pub fn get_current_turn_information(&mut self) {}
 
+    /// Deals cards to all players that are still alive,
+    /// marks any dead players with their death turn number,
+    /// moves the dealer chip,
+    /// update all 5 table cards,
     pub fn deal(&mut self) {
         // Increment the hand number
         self.hand_number += 1;
@@ -106,7 +119,8 @@ impl Table {
         let deck = Card::generate_shuffled_deck();
         let mut deck_iterator = deck.iter();
         // Pick the table cards
-        self.flop = Option::from([*deck_iterator.next().unwrap(),
+        self.flop = Option::from([
+            *deck_iterator.next().unwrap(),
             *deck_iterator.next().unwrap(),
             *deck_iterator.next().unwrap(),
         ]);
