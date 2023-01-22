@@ -97,9 +97,9 @@ impl Table {
     }
 
     // TODO: Take a copy vec of players, clone from other method and pass into here
-    pub fn sort_by_hands(&mut self) {
+    pub fn sort_by_hands(&self, mut alive_players: Vec<Player>) {
         let total_hand = vec![*self.flop.unwrap().get(0).unwrap(), *self.flop.unwrap().get(1).unwrap(), *self.flop.unwrap().get(2).unwrap(), self.turn.unwrap(), self.river.unwrap()];
-        self.players.sort_by(|player1, player2| {
+        alive_players.sort_by(|player1, player2| {
             let mut a_set = total_hand.clone();
             if let PlayerState::Active(a) = &player1.player_state {
                 a_set.extend(a.hand.iter());
@@ -114,6 +114,18 @@ impl Table {
             a.cmp(&b)
         }
         )
+    }
+
+    pub fn get_hand_winner(&self) -> Player {
+        let alive_players = self.players.iter().filter(|x| {
+            if let PlayerState::Active(_) = &x.player_state {
+                return true;
+            }
+            false
+        }).cloned().collect();
+        self.sort_by_hands(alive_players);
+        // TODO: Check for tie
+        alive_players[0]
     }
 }
 
@@ -200,5 +212,13 @@ mod tests {
         assert!(string.contains("\"players\":["));
         assert!(string.contains("Folded"));
         assert!(!string.contains("Active"));
+    }
+
+    #[test]
+    pub fn test_get_hand_winner()
+    {
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let table = Table::new(4, shared_evaluator);
+        table
     }
 }
