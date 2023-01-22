@@ -376,7 +376,7 @@ mod tests {
     }
 
     #[test]
-    pub fn check_only_one_card_returned_with_string() {
+    pub fn check_only_one_hand_returned_with_string() {
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(23, shared_evaluator);
         table.deal();
