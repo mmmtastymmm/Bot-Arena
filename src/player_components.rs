@@ -29,13 +29,14 @@ pub struct Player {
 }
 
 impl fmt::Display for PlayerState {
+    /// Get the json string version of the player
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let json = self.to_json();
-        write!(f, "{}", json)
+        write!(f, "{}", self.to_json())
     }
 }
 
 impl PlayerState {
+    /// Gets the json version of a player state as a string
     pub fn to_json(&self) -> JsonValue {
         match self {
             Folded => { object!(state_type: "folded", details: object! ()) }
@@ -44,9 +45,20 @@ impl PlayerState {
             }
         }
     }
+
+    /// Gets the json version of the player without revealing cards
+    pub fn to_json_no_secret_data(&self) -> JsonValue {
+        match self {
+            Folded => { object!(state_type: "folded", details: object! ()) }
+            Active(a) => {
+                object!(state_type: "active", details: object!(bet: a.current_bet))
+            }
+        }
+    }
 }
 
 impl fmt::Display for Player {
+    /// Gets the json version of the player
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f,
                "{}",
@@ -56,14 +68,17 @@ impl fmt::Display for Player {
 }
 
 impl Player {
+    /// Generates a new player with the given id
     pub fn new(id: i8) -> Self {
         Player { player_state: Folded, total_money: DEFAULT_START_MONEY, death_hand_number: None, id }
     }
 
+    /// Given the player new cards and ensures they're in an active state
     pub fn deal(&mut self, cards: [Card; 2]) {
         self.player_state = Active(ActiveState { hand: cards, current_bet: 0 });
     }
 
+    /// Changes state to fold, and removes all bet money
     pub fn fold(&mut self) {
         if let Active(a) = &mut self.player_state {
             self.total_money -= a.current_bet;
@@ -73,6 +88,7 @@ impl Player {
         }
     }
 
+    /// Returns true if the player is still in the game, false if the player can no longer bet.
     pub fn is_alive(self) -> bool {
         match self.death_hand_number {
             None => { true }
@@ -80,10 +96,12 @@ impl Player {
         }
     }
 
+    /// Gets the players id
     pub fn get_id(&self) -> i8 {
         self.id
     }
 
+    /// Increases the bet of the player
     pub fn bet(&mut self, bet: i32) {
         if let Active(a) = &mut self.player_state {
             let next_bet_total = a.current_bet + bet;
@@ -99,8 +117,14 @@ impl Player {
         }
     }
 
+    /// Makes a json object that holds the data in the player (all including cards)
     pub fn to_json(&self) -> JsonValue {
         object!(player: object! (player_state: self.player_state.to_json(), id: self.id, total_money: self.total_money))
+    }
+
+    /// Makes a json object that holds the data in the player but no secret data (cards)
+    pub fn to_json_no_secret_data(&self) -> JsonValue {
+        object!(player: object! (player_state: self.player_state.to_json_no_secret_data(), id: self.id, total_money: self.total_money))
     }
 }
 
