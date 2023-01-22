@@ -9,20 +9,29 @@ use poker::{Card, Evaluator};
 use crate::player_components::{Player, PlayerState};
 
 pub struct Table {
+    /// All players
     players: Vec<Player>,
+    /// The hand evaluator
     evaluator: Arc<Evaluator>,
+    /// The flop cards on the table (None if not dealt yet)
     flop: Option<[Card; 3]>,
+    /// The turn card on the table (None if not dealt yet)
     turn: Option<Card>,
+    /// The river card on the table (None if not dealt yet)
     river: Option<Card>,
+    /// Where the current dealer button is, informs turn order
     dealer_button_index: usize,
+    /// The size of the ante
     ante: i32,
+    /// How many hands have been played so far
     hand_number: i32,
+    /// Whose turn it is right now
     current_player_index: usize,
 }
 
 pub struct Turn {
     turn: usize,
-    info_str: String,
+    info_str: JsonValue,
 }
 
 pub enum BetStage {
