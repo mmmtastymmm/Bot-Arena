@@ -1,5 +1,6 @@
 # Bot-Arena
 Bot-Arena
+![example event parameter](https://github.com/github/docs/actions/workflows/unit-test.yml/badge.svg?event=push)
 [![codecov](https://codecov.io/gh/mmmtastymmm/Bot-Arena/branch/main/graph/badge.svg?token=R057I3M5PS)](https://codecov.io/gh/mmmtastymmm/Bot-Arena)
 
 Coverage Sunburst Chart
