@@ -176,13 +176,24 @@ impl Table {
         }
         // If the game is over print out a message
         if self.is_game_over() {
-            // println!("Game is over! Results are included below:\n{}", self.get_results())
+            println!("Game is over! Results are included below:\n{}", self.get_results())
         }
     }
 
-    // pub fn get_results(&self) -> String{
-    //
-    // }
+    pub fn get_results(&self) -> String {
+        let mut players_copy = self.players.clone();
+        players_copy.sort_by(|a, b| b.cmp(a));
+        let mut rank = 1;
+        let mut result_string = format!("Results:\nRank: {}, Player: {}\n", rank, players_copy.get(0).unwrap());
+        for (i, player) in players_copy.iter().skip(1).enumerate() {
+            // The players didn't tie, so increase the rank
+            if player != players_copy.get(i).unwrap() {
+                rank = i + 2;
+            }
+            result_string += &format!("Rank: {}, Player: {}\n", rank, player);
+        }
+        result_string
+    }
 
     /// Gets the current turn information
     pub fn get_current_turn_information(&mut self) -> JsonValue {
@@ -419,5 +430,21 @@ mod tests {
         let json_string = table.get_state_string_for_player(0).to_string();
         // Three open brackets, one for the player list and 2 for each open card bracket.
         assert_eq!(json_string.matches('[').count(), 3);
+    }
+
+    #[test]
+    pub fn test_results_all_tied() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        table.deal();
+        // Get results for for a starting table, which should be all tied
+        let results = table.get_results();
+        // Split the lines
+        let lines = results.split('\n');
+        // Skip the header, skip the empty string at the end, make sure everyone is in first place
+        for line in lines.skip(1).take(NUMBER_OF_PLAYERS) {
+            assert!(line.contains("Rank: 1"))
+        }
     }
 }
