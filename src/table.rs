@@ -34,13 +34,6 @@ pub struct Table {
     table_state: BetStage,
 }
 
-pub struct BetsPerStage {
-    pre_flop_bet: Option<i32>,
-    flop_bet: Option<i32>,
-    turn_bet: Option<i32>,
-    river_bet: Option<i32>,
-}
-
 impl fmt::Display for Table {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let player_strings: Vec<_> = self.players.iter().map(|x| x.as_json()).collect();
@@ -173,6 +166,9 @@ impl Table {
         }
         if self.is_betting_over() {
             self.table_state.next_stage();
+            for player in &mut self.players {
+                player.has_had_turn_this_round = false;
+            }
         }
     }
 
@@ -309,7 +305,10 @@ impl Table {
         }).max().unwrap()
     }
     fn check_all_players_ready_for_next_round(&self) -> bool {
-        self.players.iter().map(|x| x.has_had_turn_this_round).reduce(|x, y| x || y).unwrap()
+        self.players.iter().map(|x| match x.player_state {
+            PlayerState::Folded => { true }
+            PlayerState::Active(_) => { x.has_had_turn_this_round }
+        }).reduce(|x, y| x || y).unwrap()
     }
     fn check_all_active_players_same_bet(&self) -> bool {
         let max_bet = self.get_max_bet();
