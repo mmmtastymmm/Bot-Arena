@@ -182,7 +182,7 @@ impl Table {
             if player != players_copy.get(i).unwrap() {
                 rank = i + 2;
             }
-            result_string += &format!("Rank: {}, Player: {}\n", rank, player);
+            result_string += &format!("Rank: {rank}, Player: {player}\n");
         }
         result_string
     }
