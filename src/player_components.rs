@@ -5,6 +5,7 @@ use std::fmt::Formatter;
 use json::{JsonValue, object};
 use poker::Card;
 
+use crate::actions::HandAction;
 use crate::player_components::PlayerState::{Active, Folded};
 
 pub const DEFAULT_START_MONEY: i32 = 500;
@@ -27,18 +28,19 @@ pub struct Player {
     pub total_money: i32,
     pub death_hand_number: Option<i32>,
     id: i8,
+    pub has_had_turn_this_round: bool,
 }
 
 impl fmt::Display for PlayerState {
     /// Get the json string version of the player
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_json())
+        write!(f, "{}", self.as_json())
     }
 }
 
 impl PlayerState {
     /// Gets the json version of a player state as a string
-    pub fn to_json(&self) -> JsonValue {
+    pub fn as_json(&self) -> JsonValue {
         match self {
             Folded => { object!(state_type: "folded", details: object! ()) }
             Active(a) => {
@@ -48,7 +50,7 @@ impl PlayerState {
     }
 
     /// Gets the json version of the player without revealing cards
-    pub fn to_json_no_secret_data(&self) -> JsonValue {
+    pub fn as_json_no_secret_data(&self) -> JsonValue {
         match self {
             Folded => { object!(state_type: "folded", details: object! ()) }
             Active(a) => {
@@ -63,7 +65,7 @@ impl fmt::Display for Player {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f,
                "{}",
-               self.to_json()
+               self.as_json()
         )
     }
 }
@@ -102,12 +104,23 @@ impl Ord for Player {
 impl Player {
     /// Generates a new player with the given id
     pub fn new(id: i8) -> Self {
-        Player { player_state: Folded, total_money: DEFAULT_START_MONEY, death_hand_number: None, id }
+        Player { player_state: Folded, total_money: DEFAULT_START_MONEY, death_hand_number: None, id, has_had_turn_this_round: false }
+    }
+
+    pub fn take_action(&mut self, hand_action: &HandAction) {
+        self.has_had_turn_this_round = true;
+        match hand_action {
+            HandAction::Fold => { self.fold() }
+            HandAction::Check => { self.bet(0); }
+            HandAction::Call(amount) => { self.bet(*amount) }
+            HandAction::Raise(amount) => { self.bet(*amount) }
+        }
     }
 
     /// Given the player new cards and ensures they're in an active state
     pub fn deal(&mut self, cards: [Card; 2]) {
         self.player_state = Active(ActiveState { hand: cards, current_bet: 0 });
+        self.has_had_turn_this_round = false;
     }
 
     /// Changes state to fold, and removes all bet money
@@ -150,20 +163,19 @@ impl Player {
     }
 
     /// Makes a json object that holds the data in the player (all including cards)
-    pub fn to_json(&self) -> JsonValue {
-        object!(player: object! (player_state: self.player_state.to_json(), id: self.id, total_money: self.total_money))
+    pub fn as_json(&self) -> JsonValue {
+        object!(player: object! (player_state: self.player_state.as_json(), id: self.id, total_money: self.total_money))
     }
 
     /// Makes a json object that holds the data in the player but no secret data (cards)
-    pub fn to_json_no_secret_data(&self) -> JsonValue {
-        object!(player: object! (player_state: self.player_state.to_json_no_secret_data(), id: self.id, total_money: self.total_money))
+    pub fn as_json_no_secret_data(&self) -> JsonValue {
+        object!(player: object! (player_state: self.player_state.as_json_no_secret_data(), id: self.id, total_money: self.total_money))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use poker::{Card, Rank, Suit};
-
     use rand::seq::SliceRandom;
     use rand::thread_rng;
 
@@ -183,6 +195,7 @@ mod tests {
         } else {
             panic!("After deal player wasn't active")
         }
+        assert!(!player.has_had_turn_this_round);
         // Fold and check the player goes to back to folded
         player.fold();
         match player.player_state {
@@ -317,7 +330,7 @@ mod tests {
         let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         player.bet(DEFAULT_START_MONEY);
-        let string_version = player.to_json_no_secret_data().to_string();
+        let string_version = player.as_json_no_secret_data().to_string();
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
@@ -368,7 +381,7 @@ mod tests {
         let mut player1 = Player::new(0);
         player1.player_state = PlayerState::Folded;
         // Get the secret json version
-        let secret_player_json = player1.to_json_no_secret_data();
+        let secret_player_json = player1.as_json_no_secret_data();
         // Make sure it is folded
         assert_eq!(secret_player_json["player"]["player_state"]["state_type"], "folded");
         // Make sure there are no cards in the json

@@ -6,6 +6,7 @@ use poker::{Card, Evaluator};
 
 use table::Table;
 
+use crate::actions::HandAction;
 use crate::engine::Engine;
 
 mod player_components;
@@ -30,6 +31,9 @@ fn main() {
     println!("This many players: {}", table.get_player_count());
     let engine = Engine::new(12, shared_evaluator);
     println!("This is how many players are in the engine: {}", engine.table.get_player_count());
+    for _ in 0..100 {
+        table.take_action(HandAction::Check);
+    }
 }
 
 #[test]

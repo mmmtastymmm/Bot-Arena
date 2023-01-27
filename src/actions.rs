@@ -3,25 +3,24 @@ use std::fmt::Formatter;
 
 use json::object;
 
-pub enum Actions {
+pub enum HandAction {
     Fold,
     Check,
-    Call,
+    Call(i32),
     Raise(i32),
 }
 
-impl fmt::Display for Actions {
+impl fmt::Display for HandAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let json_object = {
             match self {
-                Actions::Fold => { object! {action: "fold"} }
-                Actions::Call => { object! {action: "call"} }
-                Actions::Raise(raise_amount) => { object! {action: "raise", raise_amount: (*raise_amount)} }
-                Actions::Check => { object! {action: "check"} }
+                HandAction::Fold => { object! {action: "fold"} }
+                HandAction::Call(call_amount) => { object! {action: "call", amount: (*call_amount)} }
+                HandAction::Raise(raise_amount) => { object! {action: "raise", amount: (*raise_amount)} }
+                HandAction::Check => { object! {action: "check"} }
             }
         };
-
-        write!(f, "{}", json_object)
+        write!(f, "{json_object}")
     }
 }
 
@@ -29,13 +28,13 @@ impl fmt::Display for Actions {
 mod tests {
     use json::object;
 
-    use crate::actions::Actions;
+    use crate::actions::HandAction;
 
     #[test]
     pub fn test_print() {
-        assert_eq!(Actions::Call.to_string(), object! {action: "call"}.to_string());
-        assert_eq!(Actions::Fold.to_string(), object! {action: "fold"}.to_string());
-        assert_eq!(Actions::Raise(23).to_string(), object! {action: "raise", raise_amount: 23}.to_string());
-        assert_eq!(Actions::Check.to_string(), object! {action: "check"}.to_string());
+        assert_eq!(HandAction::Call(23).to_string(), object! {action: "call", amount: 23}.to_string());
+        assert_eq!(HandAction::Fold.to_string(), object! {action: "fold"}.to_string());
+        assert_eq!(HandAction::Raise(23).to_string(), object! {action: "raise", amount: 23}.to_string());
+        assert_eq!(HandAction::Check.to_string(), object! {action: "check"}.to_string());
     }
 }

@@ -6,8 +6,9 @@ use std::sync::Arc;
 use json::{JsonValue, object};
 use poker::{Card, Evaluator};
 
-use crate::actions::Actions;
+use crate::actions::HandAction;
 use crate::player_components::{Player, PlayerState};
+use crate::table::BetStage::{Flop, PreFlop, River};
 
 pub struct Table {
     /// All players
@@ -29,7 +30,7 @@ pub struct Table {
     /// Whose turn it is right now
     current_player_index: usize,
     /// State needed for table betting information
-    table_state: TableState,
+    table_state: BetStage,
 }
 
 pub struct Turn {
@@ -44,14 +45,20 @@ pub enum BetStage {
     River,
 }
 
-pub struct TableState {
-    bet_stage: BetStage,
-    has_one_bet_occurred_this_round: bool,
+impl BetStage {
+    pub fn next_stage(&mut self) {
+        match self {
+            PreFlop => { *self = Flop; }
+            Flop => { *self = BetStage::Turn; }
+            BetStage::Turn => { *self = River }
+            River => { *self = PreFlop; }
+        }
+    }
 }
 
 impl fmt::Display for Table {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let player_strings: Vec<_> = self.players.iter().map(|x| x.to_json()).collect();
+        let player_strings: Vec<_> = self.players.iter().map(|x| x.as_json()).collect();
         let json_object = object! {
             flop: self.get_flop_string(),
             turn: self.get_turn_string(),
@@ -85,7 +92,7 @@ impl Table {
             ante: 1,
             hand_number: 0,
             current_player_index: INITIAL_INDEX,
-            table_state: TableState { bet_stage: BetStage::PreFlop, has_one_bet_occurred_this_round: false },
+            table_state: PreFlop,
         };
         table.deal();
         table
@@ -93,7 +100,7 @@ impl Table {
 
     /// Reset the table state to the starting round state
     fn reset_state_for_new_round(&mut self) {
-        self.table_state = TableState { bet_stage: BetStage::PreFlop, has_one_bet_occurred_this_round: false }
+        self.table_state = PreFlop
     }
 
     /// Translates the flop into a human readable string
@@ -109,15 +116,16 @@ impl Table {
         match self.flop {
             None => { "None".to_string() }
             Some(cards) => {
-                match self.table_state.bet_stage {
-                    BetStage::PreFlop => { "Hidden".to_string() }
-                    BetStage::Flop => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+                match &self.table_state {
+                    PreFlop => { "Hidden".to_string() }
+                    Flop => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
                     BetStage::Turn => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
-                    BetStage::River => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+                    River => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
                 }
             }
         }
     }
+
 
     /// Translates the turn into a human readable string
     pub fn get_turn_string(&self) -> String {
@@ -131,11 +139,11 @@ impl Table {
         match self.turn {
             None => { "None".to_string() }
             Some(card) => {
-                match self.table_state.bet_stage {
-                    BetStage::PreFlop => { "Hidden".to_string() }
-                    BetStage::Flop => { "Hidden".to_string() }
+                match &self.table_state {
+                    PreFlop => { "Hidden".to_string() }
+                    Flop => { "Hidden".to_string() }
                     BetStage::Turn => { card.to_string() }
-                    BetStage::River => { card.to_string() }
+                    River => { card.to_string() }
                 }
             }
         }
@@ -153,11 +161,11 @@ impl Table {
         match self.river {
             None => { "None".to_string() }
             Some(card) => {
-                match self.table_state.bet_stage {
-                    BetStage::PreFlop => { "Hidden".to_string() }
-                    BetStage::Flop => { "Hidden".to_string() }
+                match &self.table_state {
+                    PreFlop => { "Hidden".to_string() }
+                    Flop => { "Hidden".to_string() }
                     BetStage::Turn => { "Hidden".to_string() }
-                    BetStage::River => { card.to_string() }
+                    River => { card.to_string() }
                 }
             }
         }
@@ -169,7 +177,7 @@ impl Table {
     }
 
     /// Takes an action, could be recursive if the table needs no input
-    pub fn take_action(&mut self) {
+    pub fn take_action(&mut self, hand_action: HandAction) {
         // If the table is empty deal cards
         if self.is_table_clean() {
             self.deal();
@@ -177,6 +185,9 @@ impl Table {
         // If the game is over print out a message
         if self.is_game_over() {
             println!("Game is over! Results are included below:\n{}", self.get_results())
+        }
+        if self.is_betting_over() {
+            self.table_state.next_stage();
         }
     }
 
@@ -291,7 +302,7 @@ impl Table {
     }
 
     pub fn get_state_string_for_player(&self, id: i8) -> JsonValue {
-        let player_strings: Vec<_> = self.players.iter().map(|x| if x.get_id() == id { x.to_json() } else { x.to_json_no_secret_data() }).collect();
+        let player_strings: Vec<_> = self.players.iter().map(|x| if x.get_id() == id { x.as_json() } else { x.as_json_no_secret_data() }).collect();
         object! {
             flop: self.get_flop_string_secret(),
             turn: self.get_turn_string_secret(),
@@ -300,6 +311,20 @@ impl Table {
             players: player_strings,
             hand_number: self.hand_number,
         }
+    }
+    fn is_betting_over(&self) -> bool {
+        let max_bet = self.get_max_bet();
+        let all_players_bet_or_folded = self.check_all_players_ready_for_next_round();
+        false
+    }
+    fn get_max_bet(&self) -> i32 {
+        self.players.iter().map(|x| match x.player_state {
+            PlayerState::Folded => { 0 }
+            PlayerState::Active(active_state) => { active_state.current_bet }
+        }).max().unwrap()
+    }
+    fn check_all_players_ready_for_next_round(&self) -> bool {
+        self.players.iter().map(|x| x.has_had_turn_this_round).reduce(|x, y| x || y).unwrap()
     }
 }
 
@@ -393,7 +418,6 @@ mod tests {
         let mut table = Table::new(23, shared_evaluator);
         table.deal();
         let string = table.to_string();
-        println!("{}", string);
         assert!(string.contains("\"flop\":\"["));
         assert!(string.contains("\"turn\":\"["));
         assert!(string.contains("\"river\":\"["));
@@ -411,7 +435,6 @@ mod tests {
         let mut table = Table::new(23, shared_evaluator);
         table.players.get_mut(0).unwrap().fold();
         let string = table.to_string();
-        println!("{}", string);
         assert!(string.contains("\"flop\":\"["));
         assert!(string.contains("\"turn\":\"["));
         assert!(string.contains("\"river\":\"["));
