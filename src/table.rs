@@ -35,10 +35,10 @@ pub struct Table {
 }
 
 pub struct BetsPerStage {
-    PreFlopBet: Option<i32>,
-    FlopBet: Option<i32>,
-    TurnBet: Option<i32>,
-    RiverBet: Option<i32>,
+    pre_flop_bet: Option<i32>,
+    flop_bet: Option<i32>,
+    turn_bet: Option<i32>,
+    river_bet: Option<i32>,
 }
 
 impl fmt::Display for Table {
@@ -149,7 +149,7 @@ impl Table {
                 match &self.table_state {
                     PreFlop => { "Hidden".to_string() }
                     Flop => { "Hidden".to_string() }
-                    BetStage::Turn => { "Hidden".to_string() }
+                    Turn => { "Hidden".to_string() }
                     River => { card.to_string() }
                 }
             }
