@@ -13,6 +13,7 @@ mod player_components;
 mod table;
 mod engine;
 mod actions;
+mod bet_stage;
 
 fn get_deck() -> Vec<Card> {
     Card::generate_deck().collect()

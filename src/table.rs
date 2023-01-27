@@ -7,8 +7,9 @@ use json::{JsonValue, object};
 use poker::{Card, Evaluator};
 
 use crate::actions::HandAction;
+use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
+use crate::bet_stage::BetStage;
 use crate::player_components::{Player, PlayerState};
-use crate::table::BetStage::{Flop, PreFlop, River};
 
 pub struct Table {
     /// All players
@@ -33,27 +34,11 @@ pub struct Table {
     table_state: BetStage,
 }
 
-pub struct Turn {
-    turn: usize,
-    info_str: JsonValue,
-}
-
-pub enum BetStage {
-    PreFlop,
-    Flop,
-    Turn,
-    River,
-}
-
-impl BetStage {
-    pub fn next_stage(&mut self) {
-        match self {
-            PreFlop => { *self = Flop; }
-            Flop => { *self = BetStage::Turn; }
-            BetStage::Turn => { *self = River }
-            River => { *self = PreFlop; }
-        }
-    }
+pub struct BetsPerStage {
+    PreFlopBet: Option<i32>,
+    FlopBet: Option<i32>,
+    TurnBet: Option<i32>,
+    RiverBet: Option<i32>,
 }
 
 impl fmt::Display for Table {
@@ -313,9 +298,9 @@ impl Table {
         }
     }
     fn is_betting_over(&self) -> bool {
-        let max_bet = self.get_max_bet();
         let all_players_bet_or_folded = self.check_all_players_ready_for_next_round();
-        false
+        let all_players_equal_bet = self.check_all_active_players_same_bet();
+        all_players_bet_or_folded && all_players_equal_bet
     }
     fn get_max_bet(&self) -> i32 {
         self.players.iter().map(|x| match x.player_state {
@@ -325,6 +310,16 @@ impl Table {
     }
     fn check_all_players_ready_for_next_round(&self) -> bool {
         self.players.iter().map(|x| x.has_had_turn_this_round).reduce(|x, y| x || y).unwrap()
+    }
+    fn check_all_active_players_same_bet(&self) -> bool {
+        let max_bet = self.get_max_bet();
+        self.players.iter().map(|x| match x.player_state {
+            PlayerState::Folded => { true }
+            PlayerState::Active(a) => {
+                x.total_money < max_bet || a.current_bet == max_bet
+            }
+        }
+        ).reduce(|x, y| x && y).unwrap()
     }
 }
 
