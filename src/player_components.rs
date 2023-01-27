@@ -179,6 +179,7 @@ mod tests {
     use rand::seq::SliceRandom;
     use rand::thread_rng;
 
+    use crate::actions::HandAction;
     use crate::player_components::{ActiveState, DEFAULT_START_MONEY, Player, PlayerState};
 
     #[test]
@@ -390,5 +391,37 @@ mod tests {
         for card in cards {
             assert!(!player_string.contains(&card.to_string()))
         }
+    }
+
+    #[test]
+    fn test_take_action_fold() {
+        let mut player = Player::new(0);
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.take_action(&HandAction::Fold);
+        assert!(player.has_had_turn_this_round);
+    }
+
+    #[test]
+    fn test_take_action_call() {
+        let mut player = Player::new(0);
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.take_action(&HandAction::Call(10));
+        assert!(player.has_had_turn_this_round);
+    }
+
+    #[test]
+    fn test_take_action_check() {
+        let mut player = Player::new(0);
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.take_action(&HandAction::Check);
+        assert!(player.has_had_turn_this_round);
+    }
+
+    #[test]
+    fn test_take_action_raise() {
+        let mut player = Player::new(0);
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.take_action(&HandAction::Raise(10));
+        assert!(player.has_had_turn_this_round);
     }
 }
