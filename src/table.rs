@@ -97,7 +97,7 @@ impl Table {
                 match &self.table_state {
                     PreFlop => { "Hidden".to_string() }
                     Flop => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
-                    BetStage::Turn => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+                    Turn => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
                     River => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
                 }
             }
@@ -120,7 +120,7 @@ impl Table {
                 match &self.table_state {
                     PreFlop => { "Hidden".to_string() }
                     Flop => { "Hidden".to_string() }
-                    BetStage::Turn => { card.to_string() }
+                    Turn => { card.to_string() }
                     River => { card.to_string() }
                 }
             }
