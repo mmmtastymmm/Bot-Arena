@@ -464,4 +464,15 @@ mod tests {
             assert!(line.contains("Rank: 1"))
         }
     }
+
+    #[test]
+    fn test_clean() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        table.deal();
+        assert!(table.flop.is_some());
+        table.clean_table();
+        assert!(table.flop.is_none());
+    }
 }
