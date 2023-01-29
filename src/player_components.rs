@@ -114,6 +114,7 @@ impl Player {
 
     /// Changes state to fold, and removes all bet money
     pub fn fold(&mut self) {
+        self.has_had_turn_this_round = true;
         if let Active(a) = &mut self.player_state {
             self.total_money -= a.current_bet;
             self.player_state = Folded;
@@ -137,6 +138,7 @@ impl Player {
 
     /// Increases the bet of the player
     pub fn bet(&mut self, bet: i32) {
+        self.has_had_turn_this_round = true;
         if let Active(a) = &mut self.player_state {
             let next_bet_total = a.current_bet + bet;
             if next_bet_total >= self.total_money {

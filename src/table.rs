@@ -168,7 +168,7 @@ impl Table {
             panic!("Tried to take an action on a dead player");
         }
         // If there is only 1 alive player evaluate the winner
-        if self.count_alive_players() == 1 {
+        if self.get_alive_player_count() == 1 {
             self.pick_winner();
             return;
         }
@@ -365,7 +365,7 @@ impl Table {
         self.players.iter().map(|x| match x.player_state {
             PlayerState::Folded => { true }
             PlayerState::Active(_) => { x.has_had_turn_this_round }
-        }).reduce(|x, y| x || y).unwrap()
+        }).reduce(|x, y| x && y).unwrap()
     }
     fn check_all_active_players_same_bet(&self) -> bool {
         let max_bet = self.get_max_bet();
@@ -377,7 +377,7 @@ impl Table {
         }
         ).reduce(|x, y| x && y).unwrap()
     }
-    fn count_alive_players(&self) -> usize {
+    fn get_alive_player_count(&self) -> usize {
         self
             .players
             .iter()
@@ -391,7 +391,6 @@ impl Table {
     fn pick_winner(&mut self) {
         // TODO give the winnings out
         self.deal();
-        todo!()
     }
     fn get_current_player(&mut self) -> &mut Player {
         self.players.get_mut(self.current_player_index).unwrap()
@@ -406,6 +405,8 @@ mod tests {
 
     use poker::Evaluator;
 
+    use crate::actions::HandAction;
+    use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
     use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
 
@@ -550,5 +551,33 @@ mod tests {
         assert!(table.flop.is_some());
         table.clean_table();
         assert!(table.flop.is_none());
+    }
+
+    #[test]
+    fn test_players_all_checks() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        table.deal();
+        assert!(table.table_state == PreFlop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Check);
+        }
+        assert!(table.table_state == Flop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Check);
+        }
+        assert!(table.table_state == Turn);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Check);
+        }
+        assert!(table.table_state == River);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..(NUMBER_OF_PLAYERS - 1) {
+            table.take_action(HandAction::Check);
+        }
     }
 }
