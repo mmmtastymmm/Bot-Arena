@@ -32,7 +32,7 @@ mod tests {
 
     #[test]
     pub fn test_print() {
-        assert_eq!(HandAction::Call.to_string(), object! {action: "call", amount: 23}.to_string());
+        assert_eq!(HandAction::Call.to_string(), object! {action: "call"}.to_string());
         assert_eq!(HandAction::Fold.to_string(), object! {action: "fold"}.to_string());
         assert_eq!(HandAction::Raise(23).to_string(), object! {action: "raise", amount: 23}.to_string());
         assert_eq!(HandAction::Check.to_string(), object! {action: "check"}.to_string());
