@@ -9,7 +9,7 @@ use poker::{Card, Evaluator};
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
 use crate::bet_stage::BetStage;
-use crate::player_components::{Player, PlayerState};
+use crate::player_components::{ActiveState, Player, PlayerState};
 
 pub struct Table {
     /// All players
@@ -156,20 +156,64 @@ impl Table {
 
     /// Takes an action, could be recursive if the table needs no input
     pub fn take_action(&mut self, hand_action: HandAction) {
-        // If the table is empty deal cards
-        if self.is_table_clean() {
-            self.deal();
-        }
-        // If the game is over print out a message
+        // If the game is over print out a message, and do not take any actions
         if self.is_game_over() {
-            println!("Game is over! Results are included below:\n{}", self.get_results())
+            println!("Game is over! Results are included below:\n{}", self.get_results());
+            return;
         }
+        // Make sure the player is active, or increment and go to the next player
+        if let PlayerState::Active(active) = self.get_current_player().player_state {
+            self.take_provided_action(hand_action, active);
+        } else {
+            panic!("Tried to take an action on a dead player");
+        }
+        // If there is only 1 alive player evaluate the winner
+        if self.count_alive_players() == 1 {
+            self.pick_winner();
+            return;
+        }
+        // The round of betting is over
         if self.is_betting_over() {
+            // The showdown is occurring, pick the winner
+            if self.table_state == River {
+                self.pick_winner();
+                return;
+            }
+            // Move to the next betting stage
             self.table_state.next_stage();
+            // Reset the turn to the next person alive past the deal index
+            self.current_player_index = self.dealer_button_index;
+            self.update_current_player_index_to_next_active();
+            // set everyone to not have a turn yet
             for player in &mut self.players {
                 player.has_had_turn_this_round = false;
             }
         }
+    }
+
+    fn take_provided_action(&mut self, hand_action: HandAction, active_state: ActiveState) {
+        let difference = self.get_max_bet() - active_state.current_bet;
+        // Now check how to advance the hand
+        match hand_action {
+            HandAction::Fold => {
+                self.get_current_player().fold();
+            }
+            HandAction::Check => {
+                if difference == 0 {
+                    self.get_current_player().bet(0);
+                } else {
+                    self.get_current_player().fold();
+                }
+            }
+            HandAction::Call => {
+                self.get_current_player().bet(difference);
+            }
+            HandAction::Raise(raise_amount) => {
+                self.get_current_player().bet(difference + raise_amount);
+            }
+        }
+        // Update to point at the next player
+        self.update_current_player_index_to_next_active();
     }
 
     pub fn get_results(&self) -> String {
@@ -229,7 +273,7 @@ impl Table {
         let mut deck_iterator = deck.iter();
         // Deal cards to the players and the table
         self.deal_table_cards(&mut deck_iterator);
-        self.deal_cards_collect_ante(&mut deck_iterator);
+        self.deal_player_cards_collect_ante(&mut deck_iterator);
     }
 
     /// Finds the next dealer button index (next player in the list that is alive
@@ -242,6 +286,19 @@ impl Table {
             }
             if self.players.get(self.dealer_button_index).unwrap().is_alive() {
                 break;
+            }
+        }
+    }
+
+    fn update_current_player_index_to_next_active(&mut self) {
+        loop {
+            self.current_player_index += 1;
+            if self.current_player_index >= self.players.len() {
+                self.current_player_index = 0;
+            }
+            match self.players.get(self.current_player_index).unwrap().player_state {
+                PlayerState::Folded => {}
+                PlayerState::Active(_) => { break }
             }
         }
     }
@@ -268,7 +325,7 @@ impl Table {
     }
 
     /// Deal cards to the alive players and collect the ante from them.
-    fn deal_cards_collect_ante(&mut self, deck_iterator: &mut Iter<Card>) {
+    fn deal_player_cards_collect_ante(&mut self, deck_iterator: &mut Iter<Card>) {
         // Deal every alive player cards now
         for player in &mut self.players {
             if player.is_alive() {
@@ -319,6 +376,25 @@ impl Table {
             }
         }
         ).reduce(|x, y| x && y).unwrap()
+    }
+    fn count_alive_players(&self) -> usize {
+        self
+            .players
+            .iter()
+            .map(|x| match x.player_state {
+                PlayerState::Folded => { 0 }
+                PlayerState::Active(_) => { 1 }
+            })
+            .reduce(|x, y| x + y)
+            .unwrap()
+    }
+    fn pick_winner(&mut self) {
+        // TODO give the winnings out
+        self.deal();
+        todo!()
+    }
+    fn get_current_player(&mut self) -> &mut Player {
+        self.players.get_mut(self.current_player_index).unwrap()
     }
 }
 

@@ -107,16 +107,6 @@ impl Player {
         Player { player_state: Folded, total_money: DEFAULT_START_MONEY, death_hand_number: None, id, has_had_turn_this_round: false }
     }
 
-    pub fn take_action(&mut self, hand_action: &HandAction) {
-        self.has_had_turn_this_round = true;
-        match hand_action {
-            HandAction::Fold => { self.fold() }
-            HandAction::Check => { self.bet(0); }
-            HandAction::Call(amount) => { self.bet(*amount) }
-            HandAction::Raise(amount) => { self.bet(*amount) }
-        }
-    }
-
     /// Given the player new cards and ensures they're in an active state
     pub fn deal(&mut self, cards: [Card; 2]) {
         self.player_state = Active(ActiveState { hand: cards, current_bet: 0 });
@@ -391,37 +381,5 @@ mod tests {
         for card in cards {
             assert!(!player_string.contains(&card.to_string()))
         }
-    }
-
-    #[test]
-    fn test_take_action_fold() {
-        let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
-        player.take_action(&HandAction::Fold);
-        assert!(player.has_had_turn_this_round);
-    }
-
-    #[test]
-    fn test_take_action_call() {
-        let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
-        player.take_action(&HandAction::Call(10));
-        assert!(player.has_had_turn_this_round);
-    }
-
-    #[test]
-    fn test_take_action_check() {
-        let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
-        player.take_action(&HandAction::Check);
-        assert!(player.has_had_turn_this_round);
-    }
-
-    #[test]
-    fn test_take_action_raise() {
-        let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
-        player.take_action(&HandAction::Raise(10));
-        assert!(player.has_had_turn_this_round);
     }
 }
