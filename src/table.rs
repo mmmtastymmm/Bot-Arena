@@ -1,8 +1,9 @@
+use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
 use std::sync::Arc;
 
-use poker::{Card, Evaluator};
+use poker::{Card, Evaluator, Rank, Suit};
 
 use json::object;
 
@@ -100,36 +101,49 @@ impl Table {
         }
     }
 
-    // TODO: Take a copy vec of players, clone from other method and pass into here
-    pub fn sort_by_hands(&self, mut alive_players: Vec<Player>) {
-        let total_hand = vec![*self.flop.unwrap().get(0).unwrap(), *self.flop.unwrap().get(1).unwrap(), *self.flop.unwrap().get(2).unwrap(), self.turn.unwrap(), self.river.unwrap()];
-        alive_players.sort_by(|player1, player2| {
-            let mut a_set = total_hand.clone();
-            if let PlayerState::Active(a) = &player1.player_state {
-                a_set.extend(a.hand.iter());
-            }
-
-            let mut b_set = total_hand.clone();
-            if let PlayerState::Active(b) = &player2.player_state {
-                b_set.extend(b.hand.iter());
-            }
-            let a = self.evaluator.evaluate(a_set).expect("Couldn't evaluate hand 1");
-            let b = self.evaluator.evaluate(b_set).expect("Couldn't evaluate hand 2");
-            a.cmp(&b)
+    pub fn compare_players(&self, shared_cards: &Vec<Card>, player1: &Player, player2: &Player) -> Ordering {
+        let mut a_set = shared_cards.clone();
+        if let PlayerState::Active(a) = &player1.player_state {
+            a_set.extend(a.hand.iter());
         }
-        )
+
+        let mut b_set = shared_cards.clone();
+        if let PlayerState::Active(b) = &player2.player_state {
+            b_set.extend(b.hand.iter());
+        }
+
+        let a = self.evaluator.evaluate(a_set).expect("Couldn't evaluate hand 1");
+        let b = self.evaluator.evaluate(b_set).expect("Couldn't evaluate hand 2");
+        a.cmp(&b)
     }
 
-    pub fn get_hand_winner(&self) -> Player {
-        let alive_players = self.players.iter().filter(|x| {
-            if let PlayerState::Active(_) = &x.player_state {
+    pub fn sort_by_hands(&self, total_hand: Vec<Card>, alive_players: &mut Vec<Player>) {
+        alive_players.sort_by(|player1, player2| {
+            self.compare_players(&total_hand, player1, player2)
+        });
+    }
+
+    pub fn get_hand_result(&self) -> Vec<Vec<&Player>> {
+        let mut alive_players = &self.players.iter().filter(|x| { // Why not .iter().cloned() instead of at the end?
+            if let PlayerState::Active(_) = x.player_state {
                 return true;
             }
             false
         }).cloned().collect();
-        self.sort_by_hands(alive_players);
-        // TODO: Check for tie
-        alive_players[0]
+
+        let total_hand = vec![*self.flop.unwrap().get(0).unwrap(), *self.flop.unwrap().get(1).unwrap(), *self.flop.unwrap().get(2).unwrap(), self.turn.unwrap(), self.river.unwrap()];
+        self.sort_by_hands(total_hand, alive_players); // TODO
+        let mut rankings = Vec::new();
+        rankings.push(Vec::new());
+        rankings[0].push(alive_players[0]);
+        for player_num in 1..=alive_players.len() {
+            let curr_player = alive_players[player_num];
+            if self.compare_players(&total_hand, curr_player, rankings[rankings.len() - 1][0]).is_lt() {
+                rankings.push(Vec::new());
+            }
+            rankings[rankings.len() - 1].push(curr_player);
+        }
+        rankings
     }
 }
 
@@ -224,10 +238,29 @@ mod tests {
     }
 
     #[test]
-    pub fn test_get_hand_winner()
+    pub fn test_get_hand_result()
     {
         let shared_evaluator = Arc::new(Evaluator::new());
-        let table = Table::new(4, shared_evaluator);
-        table
+        let mut table = Table::new(4, shared_evaluator);
+
+        table.flop = Some([poker::Card::new(poker::Rank::Ten, poker::Suit::Spades), poker::Card::new(poker::Rank::Jack, poker::Suit::Spades), poker::Card::new(poker::Rank::Queen, poker::Suit::Spades)]);
+        table.turn = Some(poker::Card::new(poker::Rank::Two, poker::Suit::Hearts));
+        table.river = Some(poker::Card::new(poker::Rank::Seven, poker::Suit::Diamonds));
+
+        table.players[0].deal([poker::Card::new(poker::Rank::Ace, poker::Suit::Spades), poker::Card::new(poker::Rank::King, poker::Suit::Spades)]);
+        table.players[1].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Diamonds), poker::Card::new(poker::Rank::Three, poker::Suit::Clubs)]);
+        table.players[2].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Three, poker::Suit::Diamonds)]);
+        table.players[3].deal([poker::Card::new(poker::Rank::Four, poker::Suit::Clubs), poker::Card::new(poker::Rank::Five, poker::Suit::Hearts)]);
+
+        let result = table.get_hand_result();
+        assert_eq!(result[0].len(), 1);
+        assert_eq!(result[0][0].get_id(), 0);
+        assert_eq!(result[1].len(), 2);
+        assert_eq!(result[1][0].get_id(), 1);
+        assert_eq!(result[1][1].get_id(), 2);
+        assert_eq!(result[2].len(), 1);
+        assert_eq!(result[2][0].get_id(), 3);
+
+        // TODO Double check that self.players is still in the same order?
     }
 }
