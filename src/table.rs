@@ -106,42 +106,44 @@ impl Table {
         if let PlayerState::Active(a) = &player1.player_state {
             a_set.extend(a.hand.iter());
         }
+        else {
+            a_set.clear();
+        }
 
         let mut b_set = shared_cards.clone();
         if let PlayerState::Active(b) = &player2.player_state {
             b_set.extend(b.hand.iter());
         }
+        else {
+            b_set.clear();
+        }
 
         let a = self.evaluator.evaluate(a_set).expect("Couldn't evaluate hand 1");
         let b = self.evaluator.evaluate(b_set).expect("Couldn't evaluate hand 2");
-        a.cmp(&b)
+        b.cmp(&a)
     }
 
-    pub fn sort_by_hands(&self, total_hand: Vec<Card>, alive_players: &mut Vec<Player>) {
+    pub fn sort_by_hands(&self, total_hand: &Vec<Card>, alive_players: &mut Vec<Player>) {
         alive_players.sort_by(|player1, player2| {
             self.compare_players(&total_hand, player1, player2)
         });
     }
 
-    pub fn get_hand_result(&self) -> Vec<Vec<&Player>> {
-        let mut alive_players = &self.players.iter().filter(|x| { // Why not .iter().cloned() instead of at the end?
-            if let PlayerState::Active(_) = x.player_state {
-                return true;
-            }
-            false
-        }).cloned().collect();
+    pub fn get_hand_result(&self) -> Vec<Vec<Player>> {
+        let mut players_copy = self.players.clone();
 
         let total_hand = vec![*self.flop.unwrap().get(0).unwrap(), *self.flop.unwrap().get(1).unwrap(), *self.flop.unwrap().get(2).unwrap(), self.turn.unwrap(), self.river.unwrap()];
-        self.sort_by_hands(total_hand, alive_players); // TODO
+        self.sort_by_hands(&total_hand, &mut players_copy); // TODO
         let mut rankings = Vec::new();
         rankings.push(Vec::new());
-        rankings[0].push(alive_players[0]);
-        for player_num in 1..=alive_players.len() {
-            let curr_player = alive_players[player_num];
-            if self.compare_players(&total_hand, curr_player, rankings[rankings.len() - 1][0]).is_lt() {
+        rankings[0].push(players_copy[0]);
+        for player_num in 1..players_copy.len() {
+            let curr_player = players_copy[player_num];
+            if self.compare_players(&total_hand, &curr_player, &rankings[rankings.len() - 1][0]).is_gt() {
                 rankings.push(Vec::new());
             }
-            rankings[rankings.len() - 1].push(curr_player);
+            let rankings_size = rankings.len();
+            rankings[rankings_size - 1].push(curr_player);
         }
         rankings
     }
