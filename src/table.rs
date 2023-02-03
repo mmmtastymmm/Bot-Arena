@@ -32,6 +32,8 @@ pub struct Table {
     current_player_index: usize,
     /// State needed for table betting information
     table_state: BetStage,
+    /// How much money is currently in the pot
+    pot: i32,
 }
 
 impl fmt::Display for Table {
@@ -59,18 +61,19 @@ impl Table {
         for i in 0..number_of_players {
             players.push(Player::new(i as i8))
         }
-        const INITIAL_INDEX: usize = 0;
+        let initial_index = number_of_players - 1;
         let mut table = Table {
             players,
             evaluator,
             flop: None,
             turn: None,
             river: None,
-            dealer_button_index: INITIAL_INDEX,
+            dealer_button_index: initial_index,
             ante: 1,
             hand_number: 0,
-            current_player_index: INITIAL_INDEX,
+            current_player_index: initial_index,
             table_state: PreFlop,
+            pot: 0,
         };
         table.deal();
         table
@@ -266,18 +269,18 @@ impl Table {
         self.reset_state_for_new_round();
         // Check all players for death
         self.check_for_player_death();
-        // Find the next alive player index for dealer button
-        self.find_next_deal_button_index();
         // Make a deck
         let deck = Card::generate_shuffled_deck();
         let mut deck_iterator = deck.iter();
         // Deal cards to the players and the table
         self.deal_table_cards(&mut deck_iterator);
         self.deal_player_cards_collect_ante(&mut deck_iterator);
+        // Find the next alive player index for dealer button
+        self.find_next_deal_button_index_and_update_current_player();
     }
 
     /// Finds the next dealer button index (next player in the list that is alive
-    fn find_next_deal_button_index(&mut self) {
+    fn find_next_deal_button_index_and_update_current_player(&mut self) {
         // set the next dealer index by finding the next alive player
         self.dealer_button_index += 1;
         loop {
@@ -288,6 +291,9 @@ impl Table {
                 break;
             }
         }
+        // Set the current dealer button, and then increment that
+        self.current_player_index = self.dealer_button_index;
+        self.update_current_player_index_to_next_active();
     }
 
     fn update_current_player_index_to_next_active(&mut self) {
@@ -389,7 +395,9 @@ impl Table {
             .unwrap()
     }
     fn pick_winner(&mut self) {
-        // TODO give the winnings out
+        // This is the everyone but one person has folded case, give that person the winnings
+        if self.get_alive_player_count() == 1 {}
+        // TODO give the winnings out based on hand strength
         self.deal();
     }
     fn get_current_player(&mut self) -> &mut Player {
@@ -578,6 +586,108 @@ mod tests {
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Check);
+        }
+    }
+
+    #[test]
+    fn test_players_calling() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        table.deal();
+        assert!(table.table_state == PreFlop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Call);
+        }
+        assert!(table.table_state == Flop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Call);
+        }
+        assert!(table.table_state == Turn);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Call);
+        }
+        assert!(table.table_state == River);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..(NUMBER_OF_PLAYERS - 1) {
+            table.take_action(HandAction::Call);
+        }
+    }
+
+    #[test]
+    fn test_players_raising_and_calling() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        table.deal();
+        assert!(table.table_state == PreFlop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        // Everyone raises by one
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Raise(1));
+        }
+        assert_eq!(table.get_max_bet(), 1 + NUMBER_OF_PLAYERS as i32);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Call);
+        }
+        assert!(table.table_state == Flop);
+        // Just one person raises and everyone else calls
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        table.take_action(HandAction::Raise(1));
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Call);
+        }
+        assert_eq!(table.get_max_bet(), 2 + NUMBER_OF_PLAYERS as i32);
+        assert!(table.table_state == Turn);
+        // Have everyone bet again
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Raise(1));
+        }
+        assert_eq!(table.get_max_bet(), 2 + 2 * NUMBER_OF_PLAYERS as i32);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Call);
+        }
+        assert!(table.table_state == River);
+        // Have everyone bet again
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Raise(3));
+        }
+        assert_eq!(table.get_max_bet(), 2 + 5 * NUMBER_OF_PLAYERS as i32);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..(NUMBER_OF_PLAYERS - 1) {
+            table.take_action(HandAction::Call);
+        }
+    }
+
+    #[test]
+    fn test_one_raise_all_checks() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        table.take_action(HandAction::Raise(1));
+        assert!(table.table_state == PreFlop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS - 1 {
+            table.take_action(HandAction::Check);
+        }
+        assert!(table.table_state == Flop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Call);
+        }
+        assert!(table.table_state == Turn);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS {
+            table.take_action(HandAction::Call);
+        }
+        assert!(table.table_state == River);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..(NUMBER_OF_PLAYERS - 1) {
+            table.take_action(HandAction::Call);
         }
     }
 }

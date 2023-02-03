@@ -115,8 +115,7 @@ impl Player {
     /// Changes state to fold, and removes all bet money
     pub fn fold(&mut self) {
         self.has_had_turn_this_round = true;
-        if let Active(a) = &mut self.player_state {
-            self.total_money -= a.current_bet;
+        if let Active(_) = &mut self.player_state {
             self.player_state = Folded;
         } else {
             panic!("Folded on an inactive player!")
@@ -137,17 +136,20 @@ impl Player {
     }
 
     /// Increases the bet of the player
-    pub fn bet(&mut self, bet: i32) {
+    pub fn bet(&mut self, bet: i32) -> i32 {
         self.has_had_turn_this_round = true;
         if let Active(a) = &mut self.player_state {
             let next_bet_total = a.current_bet + bet;
             if next_bet_total >= self.total_money {
                 // Bet more than possible, they are going all in now
-                a.current_bet = self.total_money;
+                a.current_bet += self.total_money;
+                self.total_money = 0;
             } else {
                 // Normal bet occurred
-                a.current_bet = next_bet_total;
+                a.current_bet += next_bet_total;
+                self.total_money -= next_bet_total;
             }
+            a.current_bet
         } else {
             panic!("Betting in a non-active state is illegal!")
         }
@@ -234,9 +236,9 @@ mod tests {
         let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
         const BET_AMOUNT: i32 = 20;
-        player.bet(BET_AMOUNT);
-        player.bet(BET_AMOUNT);
-        player.bet(BET_AMOUNT);
+        assert_eq!(player.bet(BET_AMOUNT), BET_AMOUNT);
+        assert_eq!(player.bet(BET_AMOUNT), BET_AMOUNT);
+        assert_eq!(player.bet(BET_AMOUNT), BET_AMOUNT);
         if let PlayerState::Active(a) = player.player_state {
             assert_eq!(a.current_bet, BET_AMOUNT * 3)
         } else {
@@ -248,9 +250,11 @@ mod tests {
     fn bet_all_in() {
         let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
-        player.bet(DEFAULT_START_MONEY);
-        player.bet(DEFAULT_START_MONEY);
-        player.bet(DEFAULT_START_MONEY);
+        assert_eq!(player.bet(DEFAULT_START_MONEY + 3), DEFAULT_START_MONEY);
+        let mut player = Player::new(0);
+        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        assert_eq!(player.bet(DEFAULT_START_MONEY), DEFAULT_START_MONEY);
+        assert_eq!(player.bet(DEFAULT_START_MONEY), 0);
         if let PlayerState::Active(a) = player.player_state {
             assert_eq!(a.current_bet, DEFAULT_START_MONEY);
         } else {
@@ -262,7 +266,7 @@ mod tests {
     fn bet_all_in_1_bet() {
         let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
-        player.bet(DEFAULT_START_MONEY);
+        assert_eq!(player.bet(DEFAULT_START_MONEY), DEFAULT_START_MONEY);
         if let PlayerState::Active(a) = player.player_state {
             assert_eq!(a.current_bet, DEFAULT_START_MONEY);
         } else {
@@ -321,7 +325,7 @@ mod tests {
     fn test_no_cards_in_secret() {
         let mut player = Player::new(0);
         player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
-        player.bet(DEFAULT_START_MONEY);
+        assert_eq!(player.bet(DEFAULT_START_MONEY), DEFAULT_START_MONEY);
         let string_version = player.as_json_no_secret_data().to_string();
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
