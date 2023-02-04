@@ -725,4 +725,36 @@ mod tests {
         table.flop = None;
         assert_eq!(table.get_flop_string_secret(), "None");
     }
+
+
+    #[test]
+    fn test_turn_string() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        assert_eq!(table.get_turn_string_secret(), "Hidden");
+        table.table_state = Flop;
+        assert_eq!(table.get_turn_string_secret(), "Hidden");
+        table.table_state = Turn;
+        assert!(!table.get_turn_string_secret().contains("Hidden"));
+        table.turn = None;
+        assert_eq!(table.get_turn_string_secret(), "None");
+        assert_eq!(table.get_turn_string(), "None");
+    }
+
+
+    #[test]
+    fn test_river_string() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        assert_eq!(table.get_river_string_secret(), "Hidden");
+        table.table_state = Flop;
+        assert_eq!(table.get_river_string_secret(), "Hidden");
+        table.table_state = River;
+        assert!(!table.get_river_string_secret().contains("Hidden"));
+        table.river = None;
+        assert_eq!(table.get_river_string_secret(), "None");
+        assert_eq!(table.get_river_string(), "None");
+    }
 }
