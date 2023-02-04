@@ -719,8 +719,9 @@ mod tests {
         const NUMBER_OF_PLAYERS: usize = 23;
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
-        // table.table_state =
-
+        assert_eq!(table.get_flop_string_secret(), "Hidden");
+        table.table_state = Flop;
+        assert!(!table.get_flop_string_secret().contains("Hidden"));
         table.flop = None;
         assert_eq!(table.get_flop_string_secret(), "None");
     }
