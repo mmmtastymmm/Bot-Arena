@@ -99,9 +99,7 @@ impl Table {
             Some(cards) => {
                 match &self.table_state {
                     PreFlop => { "Hidden".to_string() }
-                    Flop => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
-                    Turn => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
-                    River => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+                    _ => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
                 }
             }
         }
@@ -123,8 +121,7 @@ impl Table {
                 match &self.table_state {
                     PreFlop => { "Hidden".to_string() }
                     Flop => { "Hidden".to_string() }
-                    Turn => { card.to_string() }
-                    River => { card.to_string() }
+                    _ => { card.to_string() }
                 }
             }
         }
@@ -143,10 +140,8 @@ impl Table {
             None => { "None".to_string() }
             Some(card) => {
                 match &self.table_state {
-                    PreFlop => { "Hidden".to_string() }
-                    Flop => { "Hidden".to_string() }
-                    Turn => { "Hidden".to_string() }
                     River => { card.to_string() }
+                    _ => { "Hidden".to_string() }
                 }
             }
         }
@@ -247,10 +242,6 @@ impl Table {
         for player in &mut self.players {
             player.fold();
         }
-    }
-
-    pub fn is_table_clean(&self) -> bool {
-        self.flop.is_none()
     }
 
     pub fn is_game_over(&self) -> bool {
@@ -712,5 +703,25 @@ mod tests {
                 _ => { table.take_action(HandAction::Fold) }
             }
         }
+    }
+
+    #[test]
+    fn test_flop_string() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        table.flop = None;
+        assert_eq!(table.get_flop_string(), "None");
+    }
+
+    #[test]
+    fn test_flop_string_secret() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        // table.table_state =
+
+        table.flop = None;
+        assert_eq!(table.get_flop_string_secret(), "None");
     }
 }
