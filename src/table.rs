@@ -423,10 +423,11 @@ mod tests {
     use std::sync::Arc;
 
     use poker::Evaluator;
+    use rand::Rng;
 
     use crate::actions::HandAction;
     use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-    use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
+    use crate::player_components::{ActiveState, DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
 
     #[test]
@@ -692,5 +693,24 @@ mod tests {
             table.players.get(1).unwrap().total_money,
             DEFAULT_START_MONEY + (NUMBER_OF_PLAYERS as i32 - 2) * table.ante
         );
+    }
+
+    #[test]
+    fn test_rounds_with_some_folding() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        assert!(table.table_state == PreFlop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..10000 {
+            let mut rng = rand::thread_rng();
+            let action_int = rng.gen_range(0..4);
+            match action_int {
+                0 => { table.take_action(HandAction::Raise(1)) }
+                1 => { table.take_action(HandAction::Check) }
+                2 => { table.take_action(HandAction::Call) }
+                _ => { table.take_action(HandAction::Fold) }
+            }
+        }
     }
 }
