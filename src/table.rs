@@ -209,10 +209,10 @@ impl Table {
                 }
             }
             HandAction::Call => {
-                self.get_current_player().bet(difference);
+                self.pot += self.get_current_player().bet(difference);
             }
             HandAction::Raise(raise_amount) => {
-                self.get_current_player().bet(difference + raise_amount);
+                self.pot += self.get_current_player().bet(difference + raise_amount);
             }
         }
         // Update to point at the next player
@@ -263,8 +263,14 @@ impl Table {
     /// moves the dealer chip,
     /// update all 5 table cards,
     pub fn deal(&mut self) {
+        // If the game is over do not do anything
+        if self.is_game_over() {
+            return;
+        }
         // Increment the hand number
         self.hand_number += 1;
+        // Set the pot back to zero
+        self.pot = 0;
         // Reset the state for a new round of betting
         self.reset_state_for_new_round();
         // Check all players for death
@@ -281,9 +287,9 @@ impl Table {
 
     /// Finds the next dealer button index (next player in the list that is alive
     fn find_next_deal_button_index_and_update_current_player(&mut self) {
-        // set the next dealer index by finding the next alive player
-        self.dealer_button_index += 1;
-        loop {
+        for _ in 0..self.players.len() {
+            // set the next dealer index by finding the next alive player
+            self.dealer_button_index += 1;
             if self.dealer_button_index + 1 >= self.get_player_count() {
                 self.dealer_button_index = 0;
             }
@@ -297,7 +303,7 @@ impl Table {
     }
 
     fn update_current_player_index_to_next_active(&mut self) {
-        loop {
+        for _ in 0..self.players.len() {
             self.current_player_index += 1;
             if self.current_player_index >= self.players.len() {
                 self.current_player_index = 0;
@@ -338,9 +344,9 @@ impl Table {
                 let card1 = *deck_iterator.next().unwrap();
                 let card2 = *deck_iterator.next().unwrap();
                 player.deal([card1, card2]);
-                if let PlayerState::Active(a) = &mut player.player_state {
-                    a.current_bet += self.ante
-                }
+                self.pot += player.bet(self.ante);
+                // the ante doesn't count as a turn so clarify the bot hasn't had a turn
+                player.has_had_turn_this_round = false;
             }
         }
     }
@@ -396,7 +402,12 @@ impl Table {
     }
     fn pick_winner(&mut self) {
         // This is the everyone but one person has folded case, give that person the winnings
-        if self.get_alive_player_count() == 1 {}
+        if self.get_alive_player_count() == 1 {
+            self.players.iter_mut().find(|x| match x.player_state {
+                PlayerState::Folded => { false }
+                PlayerState::Active(_) => { true }
+            }).unwrap().total_money += self.pot;
+        }
         // TODO give the winnings out based on hand strength
         self.deal();
     }
@@ -477,7 +488,7 @@ mod tests {
         // Add a player that will die sooner
         table.players.get_mut(0).unwrap().total_money = 100;
         // Deal the largest table size allowed
-        for _ in 0..DEFAULT_START_MONEY {
+        for i in 0..DEFAULT_START_MONEY * 2 {
             table.deal();
         }
     }
@@ -674,20 +685,12 @@ mod tests {
         for _ in 0..NUMBER_OF_PLAYERS - 1 {
             table.take_action(HandAction::Check);
         }
-        assert!(table.table_state == Flop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
-        for _ in 0..NUMBER_OF_PLAYERS {
-            table.take_action(HandAction::Call);
-        }
-        assert!(table.table_state == Turn);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
-        for _ in 0..NUMBER_OF_PLAYERS {
-            table.take_action(HandAction::Call);
-        }
-        assert!(table.table_state == River);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
-        for _ in 0..(NUMBER_OF_PLAYERS - 1) {
-            table.take_action(HandAction::Call);
-        }
+        // All players should be have folded except one and the table should have reset
+        assert!(table.table_state == PreFlop);
+        // Check that the first player (index 1, left of dealer chip) won the ante
+        assert_eq!(
+            table.players.get(1).unwrap().total_money,
+            DEFAULT_START_MONEY + (NUMBER_OF_PLAYERS as i32 - 2) * table.ante
+        );
     }
 }

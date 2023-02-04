@@ -135,21 +135,22 @@ impl Player {
         self.id
     }
 
-    /// Increases the bet of the player
+    /// Increases the bet of the player, returns how much the player increased their money into the pot
     pub fn bet(&mut self, bet: i32) -> i32 {
         self.has_had_turn_this_round = true;
         if let Active(a) = &mut self.player_state {
-            let next_bet_total = a.current_bet + bet;
-            if next_bet_total >= self.total_money {
+            if bet >= self.total_money {
                 // Bet more than possible, they are going all in now
-                a.current_bet += self.total_money;
-                self.total_money = 0;
+                let all_in_amount = self.total_money;
+                a.current_bet += all_in_amount;
+                self.total_money -= all_in_amount;
+                all_in_amount
             } else {
                 // Normal bet occurred
-                a.current_bet += next_bet_total;
-                self.total_money -= next_bet_total;
+                a.current_bet += bet;
+                self.total_money -= bet;
+                bet
             }
-            a.current_bet
         } else {
             panic!("Betting in a non-active state is illegal!")
         }
@@ -184,12 +185,12 @@ mod tests {
         if let PlayerState::Active(a) = &mut player.player_state {
             // Check there is no bet yet
             assert_eq!(a.current_bet, 0);
-            // Add a bet now
-            a.current_bet = BET_AMOUNT;
         } else {
             panic!("After deal player wasn't active")
         }
-        assert!(!player.has_had_turn_this_round);
+        // Add a bet now
+        player.bet(BET_AMOUNT);
+        assert!(player.has_had_turn_this_round);
         // Fold and check the player goes to back to folded
         player.fold();
         match player.player_state {
@@ -311,7 +312,7 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":500}},\"id\":0,\"total_money\":500}}").unwrap())
+            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":500}},\"id\":0,\"total_money\":0}}").unwrap())
     }
 
     #[test]
@@ -330,7 +331,7 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"bet\":500}},\"id\":0,\"total_money\":500}}").unwrap())
+            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"bet\":500}},\"id\":0,\"total_money\":0}}").unwrap())
     }
 
     #[test]
