@@ -4,7 +4,7 @@ use std::fmt::Formatter;
 use std::sync::Arc;
 
 use json::object;
-use poker::{Card, Evaluator, Rank, Suit};
+use poker::{Card, Evaluator};
 
 use crate::player_components::{Player, PlayerState};
 
@@ -76,11 +76,6 @@ impl Table {
         self.players.len()
     }
 
-    pub fn get_current_state(&self) -> String {
-        "".to_string()
-    }
-
-    pub fn take_action(&mut self) {}
 
     pub fn deal(&mut self) {
         let deck = Card::generate_shuffled_deck();
@@ -100,21 +95,23 @@ impl Table {
         }
     }
 
-    pub fn compare_players(&self, shared_cards: &Vec<Card>, player1: &Player, player2: &Player) -> Ordering {
-        let mut a_set = shared_cards.clone();
+    pub fn compare_players(&self, shared_cards: &[Card], player1: &Player, player2: &Player) -> Ordering {
+        if !player1.player_state.is_active() && !player2.player_state.is_active() {
+            return Ordering::Equal;
+        } else if !player1.is_alive() {
+            return Ordering::Less;
+        } else if !player2.is_alive() {
+            return Ordering::Equal;
+        }
+
+        let mut a_set: Vec<Card> = shared_cards.into();
         if let PlayerState::Active(a) = &player1.player_state {
             a_set.extend(a.hand.iter());
         }
-        else {
-            a_set.clear();
-        }
 
-        let mut b_set = shared_cards.clone();
+        let mut b_set: Vec<Card> = shared_cards.into();
         if let PlayerState::Active(b) = &player2.player_state {
             b_set.extend(b.hand.iter());
-        }
-        else {
-            b_set.clear();
         }
 
         let a = self.evaluator.evaluate(a_set).expect("Couldn't evaluate hand 1");
@@ -122,9 +119,9 @@ impl Table {
         b.cmp(&a)
     }
 
-    pub fn sort_by_hands(&self, total_hand: &Vec<Card>, alive_players: &mut Vec<Player>) {
+    pub fn sort_by_hands(&self, total_hand: &[Card], alive_players: &mut [Player]) {
         alive_players.sort_by(|player1, player2| {
-            self.compare_players(&total_hand, player1, player2)
+            self.compare_players(total_hand, player1, player2)
         });
     }
 
@@ -136,13 +133,12 @@ impl Table {
         let mut rankings = Vec::new();
         rankings.push(Vec::new());
         rankings[0].push(players_copy[0]);
-        for player_num in 1..players_copy.len() {
-            let curr_player = players_copy[player_num];
-            if self.compare_players(&total_hand, &curr_player, &rankings[rankings.len() - 1][0]).is_gt() {
+        for curr_player in players_copy.iter().skip(1) {
+            if self.compare_players(&total_hand, curr_player, &rankings[rankings.len() - 1][0]).is_gt() {
                 rankings.push(Vec::new());
             }
             let rankings_size = rankings.len();
-            rankings[rankings_size - 1].push(curr_player);
+            rankings[rankings_size - 1].push(*curr_player);
         }
         rankings
     }
@@ -155,6 +151,8 @@ mod tests {
     use std::sync::Arc;
 
     use poker::Evaluator;
+    use rand::seq::SliceRandom;
+    use rand::thread_rng;
 
     use crate::player_components::PlayerState;
     use crate::table::Table;
@@ -238,12 +236,9 @@ mod tests {
         assert!(!string.contains("Active"));
     }
 
-    #[test]
-    pub fn test_get_hand_result()
-    {
+    fn deal_test_cards() -> Table {
         let shared_evaluator = Arc::new(Evaluator::new());
-        let mut table = Table::new(4, shared_evaluator);
-
+        let mut table = Table::new(6, shared_evaluator);
         table.flop = Some([poker::Card::new(poker::Rank::Ten, poker::Suit::Spades), poker::Card::new(poker::Rank::Jack, poker::Suit::Spades), poker::Card::new(poker::Rank::Queen, poker::Suit::Spades)]);
         table.turn = Some(poker::Card::new(poker::Rank::Two, poker::Suit::Hearts));
         table.river = Some(poker::Card::new(poker::Rank::Seven, poker::Suit::Diamonds));
@@ -252,18 +247,73 @@ mod tests {
         table.players[1].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Diamonds), poker::Card::new(poker::Rank::Three, poker::Suit::Clubs)]);
         table.players[2].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Three, poker::Suit::Diamonds)]);
         table.players[3].deal([poker::Card::new(poker::Rank::Four, poker::Suit::Clubs), poker::Card::new(poker::Rank::Five, poker::Suit::Hearts)]);
+        table.players[4].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)]);
+        table.players[5].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)]);
+        table.players[4].fold();
+        table.players[5].fold();
+        table
+    }
 
+    fn test_ordering_from_deal_function(table: &Table) {
         let result = table.get_hand_result();
         assert_eq!(result[0].len(), 1);
         assert_eq!(result[0][0].get_id(), 0);
         assert_eq!(result[1].len(), 2);
-        assert_eq!(result[1][0].get_id(), 1);
-        assert_eq!(result[1][1].get_id(), 2);
+        assert!(result[1].iter().any(|x| x.get_id() == 1));
+        assert!(result[1].iter().any(|x| x.get_id() == 2));
         assert_eq!(result[2].len(), 1);
         assert_eq!(result[2][0].get_id(), 3);
+        assert_eq!(result[3].len(), 2);
+        assert!(result[3].iter().any(|x| x.get_id() == 4));
+        assert!(result[3].iter().any(|x| x.get_id() == 5));
+    }
+
+    #[test]
+    pub fn test_get_hand_result()
+    {
+        let table = deal_test_cards();
+        test_ordering_from_deal_function(&table);
 
         for i in 0..table.players.len() {
             assert_eq!(table.players[i].get_id() as usize, i);
+        }
+    }
+
+    #[test]
+    pub fn test_get_hand_result_out_of_order_initially()
+    {
+        let mut table = deal_test_cards();
+        let mut rng = thread_rng();
+        table.players.shuffle(&mut rng);
+
+        let mut initial_order = vec![];
+        for player in &table.players {
+            initial_order.push(player.get_id());
+        }
+
+        test_ordering_from_deal_function(&table);
+
+        let zipped = table.players.iter().zip(initial_order.iter());
+
+        for (player, id) in zipped {
+            assert_eq!(player.get_id(), *id);
+        }
+    }
+
+    #[test]
+    pub fn test_get_hand_result_reversed()
+    {
+        let mut table = deal_test_cards();
+        table.players.reverse();
+        let mut initial_order = vec![];
+        for player in &table.players {
+            initial_order.push(player.get_id());
+        }
+        test_ordering_from_deal_function(&table);
+        let zipped = table.players.iter().zip(initial_order.iter());
+
+        for (player, id) in zipped {
+            assert_eq!(player.get_id(), *id);
         }
     }
 }
