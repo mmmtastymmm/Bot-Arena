@@ -98,10 +98,10 @@ impl Table {
     pub fn compare_players(&self, shared_cards: &[Card], player1: &Player, player2: &Player) -> Ordering {
         if !player1.player_state.is_active() && !player2.player_state.is_active() {
             return Ordering::Equal;
-        } else if !player1.is_alive() {
+        } else if !player1.player_state.is_active() {
+            return Ordering::Greater;
+        } else if !player2.player_state.is_active() {
             return Ordering::Less;
-        } else if !player2.is_alive() {
-            return Ordering::Equal;
         }
 
         let mut a_set: Vec<Card> = shared_cards.into();
