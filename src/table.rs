@@ -273,7 +273,6 @@ mod tests {
     {
         let table = deal_test_cards();
         test_ordering_from_deal_function(&table);
-
         for i in 0..table.players.len() {
             assert_eq!(table.players[i].get_id() as usize, i);
         }
@@ -285,16 +284,12 @@ mod tests {
         let mut table = deal_test_cards();
         let mut rng = thread_rng();
         table.players.shuffle(&mut rng);
-
         let mut initial_order = vec![];
         for player in &table.players {
             initial_order.push(player.get_id());
         }
-
         test_ordering_from_deal_function(&table);
-
         let zipped = table.players.iter().zip(initial_order.iter());
-
         for (player, id) in zipped {
             assert_eq!(player.get_id(), *id);
         }
@@ -311,7 +306,6 @@ mod tests {
         }
         test_ordering_from_deal_function(&table);
         let zipped = table.players.iter().zip(initial_order.iter());
-
         for (player, id) in zipped {
             assert_eq!(player.get_id(), *id);
         }
