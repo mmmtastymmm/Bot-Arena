@@ -41,6 +41,15 @@ impl fmt::Display for PlayerState {
     }
 }
 
+impl PlayerState {
+    pub fn is_active(&self) -> bool {
+        match self {
+            Folded => { false }
+            Active(_) => { true }
+        }
+    }
+}
+
 impl fmt::Display for Player {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f,
