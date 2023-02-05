@@ -129,7 +129,7 @@ impl Table {
         let mut players_copy = self.players.clone();
 
         let total_hand = vec![*self.flop.unwrap().get(0).unwrap(), *self.flop.unwrap().get(1).unwrap(), *self.flop.unwrap().get(2).unwrap(), self.turn.unwrap(), self.river.unwrap()];
-        self.sort_by_hands(&total_hand, &mut players_copy); // TODO
+        self.sort_by_hands(&total_hand, &mut players_copy);
         let mut rankings = Vec::new();
         rankings.push(Vec::new());
         rankings[0].push(players_copy[0]);
