@@ -3,9 +3,8 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::sync::Arc;
 
-use poker::{Card, Evaluator, Rank, Suit};
-
 use json::object;
+use poker::{Card, Evaluator, Rank, Suit};
 
 use crate::player_components::{Player, PlayerState};
 
@@ -263,6 +262,8 @@ mod tests {
         assert_eq!(result[2].len(), 1);
         assert_eq!(result[2][0].get_id(), 3);
 
-        // TODO Double check that self.players is still in the same order?
+        for i in 0..table.players.len() {
+            assert_eq!(table.players[i].get_id() as usize, i);
+        }
     }
 }
