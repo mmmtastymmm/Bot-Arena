@@ -59,6 +59,15 @@ impl PlayerState {
     }
 }
 
+impl PlayerState {
+    pub fn is_active(&self) -> bool {
+        match self {
+            Folded => { false }
+            Active(_) => { true }
+        }
+    }
+}
+
 impl fmt::Display for Player {
     /// Gets the json version of the player
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
