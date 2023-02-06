@@ -8,7 +8,7 @@ use json::{JsonValue, object};
 use poker::{Card, Evaluator};
 
 use crate::actions::HandAction;
-use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
+use crate::bet_stage::BetStage::{Flop, PreFlop, River};
 use crate::bet_stage::BetStage;
 use crate::player_components::{ActiveState, Player, PlayerState};
 
@@ -469,7 +469,7 @@ mod tests {
 
     use crate::actions::HandAction;
     use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-    use crate::player_components::{ActiveState, DEFAULT_START_MONEY, PlayerState};
+    use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
 
     #[test]
@@ -531,7 +531,7 @@ mod tests {
         // Add a player that will die sooner
         table.players.get_mut(0).unwrap().total_money = 100;
         // Deal the largest table size allowed
-        for i in 0..DEFAULT_START_MONEY * 2 {
+        for _ in 0..DEFAULT_START_MONEY * 2 {
             table.deal();
         }
     }
@@ -745,7 +745,7 @@ mod tests {
         assert!(table.table_state == PreFlop);
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..10000 {
-            let mut rng = rand::thread_rng();
+            let mut rng = thread_rng();
             let action_int = rng.gen_range(0..4);
             match action_int {
                 0 => { table.take_action(HandAction::Raise(1)) }
