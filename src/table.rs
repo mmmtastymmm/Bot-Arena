@@ -191,7 +191,7 @@ impl Table {
     }
 
     fn take_provided_action(&mut self, hand_action: HandAction, active_state: ActiveState) {
-        let difference = self.get_max_bet() - active_state.current_bet;
+        let difference = self.get_largest_active_bet() - active_state.current_bet;
         // Now check how to advance the hand
         match hand_action {
             HandAction::Fold => {
@@ -359,7 +359,7 @@ impl Table {
         let all_players_equal_bet = self.check_all_active_players_same_bet();
         all_players_bet_or_folded && all_players_equal_bet
     }
-    fn get_max_bet(&self) -> i32 {
+    fn get_largest_active_bet(&self) -> i32 {
         self.players.iter().map(|x| match x.player_state {
             PlayerState::Folded => { 0 }
             PlayerState::Active(active_state) => { active_state.current_bet }
@@ -372,7 +372,7 @@ impl Table {
         }).reduce(|x, y| x && y).unwrap()
     }
     fn check_all_active_players_same_bet(&self) -> bool {
-        let max_bet = self.get_max_bet();
+        let max_bet = self.get_largest_active_bet();
         self.players.iter().map(|x| match x.player_state {
             PlayerState::Folded => { true }
             PlayerState::Active(a) => {
@@ -683,7 +683,7 @@ mod tests {
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Raise(1));
         }
-        assert_eq!(table.get_max_bet(), 1 + NUMBER_OF_PLAYERS as i32);
+        assert_eq!(table.get_largest_active_bet(), 1 + NUMBER_OF_PLAYERS as i32);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Call);
         }
@@ -694,13 +694,13 @@ mod tests {
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Call);
         }
-        assert_eq!(table.get_max_bet(), 2 + NUMBER_OF_PLAYERS as i32);
+        assert_eq!(table.get_largest_active_bet(), 2 + NUMBER_OF_PLAYERS as i32);
         assert!(table.table_state == Turn);
         // Have everyone bet again
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Raise(1));
         }
-        assert_eq!(table.get_max_bet(), 2 + 2 * NUMBER_OF_PLAYERS as i32);
+        assert_eq!(table.get_largest_active_bet(), 2 + 2 * NUMBER_OF_PLAYERS as i32);
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Call);
@@ -710,7 +710,7 @@ mod tests {
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Raise(3));
         }
-        assert_eq!(table.get_max_bet(), 2 + 5 * NUMBER_OF_PLAYERS as i32);
+        assert_eq!(table.get_largest_active_bet(), 2 + 5 * NUMBER_OF_PLAYERS as i32);
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Call);
