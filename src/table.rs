@@ -377,7 +377,7 @@ impl Table {
         self.players.iter().map(|x| match x.player_state {
             PlayerState::Folded => { true }
             PlayerState::Active(a) => {
-                x.total_money < max_bet || a.current_bet == max_bet
+                x.total_money == 0 || a.current_bet == max_bet
             }
         }
         ).reduce(|x, y| x && y).unwrap()
@@ -670,6 +670,24 @@ mod tests {
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Call);
         }
+    }
+
+    #[test]
+    fn test_everyone_all_in() {
+        const NUMBER_OF_PLAYERS: usize = 3;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        assert!(table.table_state == PreFlop);
+        table.players.get_mut(1).unwrap().total_money = DEFAULT_START_MONEY / 2;
+        table.take_action(HandAction::Check);
+        table.take_action(HandAction::Raise(DEFAULT_START_MONEY / 2 + 1));
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        for _ in 0..NUMBER_OF_PLAYERS - 2 {
+            table.take_action(HandAction::Call);
+        }
+        assert!(!table.check_all_active_players_same_bet());
+        table.take_action(HandAction::Call);
+        assert!(table.check_all_active_players_same_bet());
     }
 
     #[test]
