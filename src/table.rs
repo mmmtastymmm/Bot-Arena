@@ -191,6 +191,7 @@ impl Table {
     }
 
     fn take_provided_action(&mut self, hand_action: HandAction, active_state: ActiveState) {
+        //TODO: Saturate to pot limit.
         let difference = self.get_largest_active_bet() - active_state.current_bet;
         // Now check how to advance the hand
         match hand_action {
