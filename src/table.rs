@@ -168,14 +168,14 @@ impl Table {
         }
         // If there is only 1 alive player evaluate the winner
         if self.get_alive_player_count() == 1 {
-            self.pick_winner();
+            self.resolve_hand();
             return;
         }
         // The round of betting is over
         if self.is_betting_over() {
             // The showdown is occurring, pick the winner
             if self.table_state == River {
-                self.pick_winner();
+                self.resolve_hand();
                 return;
             }
             // Move to the next betting stage
@@ -393,7 +393,8 @@ impl Table {
             .reduce(|x, y| x + y)
             .unwrap()
     }
-    fn pick_winner(&mut self) {
+    /// Picks winner(s), gives out winnings, and deals a new hand
+    fn resolve_hand(&mut self) {
         // This is the everyone but one person has folded case, give that person the winnings
         if self.get_alive_player_count() == 1 {
             self.players.iter_mut().find(|x| match x.player_state {
