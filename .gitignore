@@ -1,3 +1,5 @@
+# Build files
 /target
-/.vs
+# IDE files
 /.idea
+/.vs
