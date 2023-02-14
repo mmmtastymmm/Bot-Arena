@@ -462,6 +462,7 @@ impl Table {
 
 #[cfg(test)]
 mod tests {
+    use std::cmp::{max, min};
     use std::collections::HashSet;
     use std::sync::Arc;
 
@@ -737,6 +738,24 @@ mod tests {
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Call);
+        }
+    }
+
+    #[test]
+    fn test_players_raising_over_pot_limit() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        assert!(table.table_state == PreFlop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        let mut correct_largest_bet = 1;
+        // Everyone raises by one
+        for _ in 0..NUMBER_OF_PLAYERS {
+            correct_largest_bet += table.pot;
+            correct_largest_bet = min(correct_largest_bet, DEFAULT_START_MONEY);
+            table.take_action(HandAction::Raise(i32::MAX / 2));
+            let actual_largest_active_bet = table.get_largest_active_bet();
+            assert_eq!(actual_largest_active_bet, correct_largest_bet);
         }
     }
 
