@@ -35,7 +35,7 @@ pub struct Table {
     table_state: BetStage,
     /// How much money is currently in the pot
     pot: i32,
-    /// How frequently the ante should be increased
+    /// How frequently (after "ante_round_increase" rounds) the ante should be increased
     ante_round_increase: i32
 }
 
