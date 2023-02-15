@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::cmp::{min, Ordering};
 use std::fmt;
 use std::fmt::Formatter;
 use std::slice::Iter;
@@ -35,6 +35,8 @@ pub struct Table {
     table_state: BetStage,
     /// Player bets, how much each player has bet so far
     player_bets: Vec<i32>,
+    /// How frequently (after "ante_round_increase" rounds) the ante should be increased
+    ante_round_increase: i32
 }
 
 impl fmt::Display for Table {
@@ -53,6 +55,7 @@ impl fmt::Display for Table {
 }
 
 impl Table {
+    const ANTE_INCREASE_AMOUNT: i32 = 1;
     /// Makes a table of with the specified number of players.
     pub fn new(number_of_players: usize, evaluator: Arc<Evaluator>) -> Self {
         if number_of_players > 23 {
@@ -74,7 +77,8 @@ impl Table {
             hand_number: 0,
             current_player_index: initial_index,
             table_state: PreFlop,
-            player_bets: vec![0; number_of_players]
+            player_bets: vec![0; number_of_players],
+            ante_round_increase: number_of_players as i32 * 2
         };
         table.deal();
         table
@@ -191,7 +195,6 @@ impl Table {
     }
 
     fn take_provided_action(&mut self, hand_action: HandAction, active_state: ActiveState) {
-        //TODO: Saturate to pot limit.
         let difference = self.get_largest_active_bet() - active_state.current_bet;
         // Now check how to advance the hand
         match hand_action {
@@ -211,7 +214,9 @@ impl Table {
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
             }
             HandAction::Raise(raise_amount) => {
-                let bet_amount = self.get_current_player().bet(difference + raise_amount);
+                // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
+                let acceptable_bet = min(raise_amount + difference, self.pot + difference);
+                let bet_amount = self.get_current_player().bet(acceptable_bet);
                 let index = self.get_current_player().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
             }
@@ -280,6 +285,10 @@ impl Table {
         self.deal_player_cards_collect_ante(&mut deck_iterator);
         // Find the next alive player index for dealer button
         self.find_next_deal_button_index_and_update_current_player();
+        // If it is time to increase the ante do so.
+        if (self.hand_number) % self.ante_round_increase == 0 {
+            self.ante += Table::ANTE_INCREASE_AMOUNT;
+        }
     }
 
     /// Finds the next dealer button index (next player in the list that is alive
@@ -482,6 +491,7 @@ impl Table {
 
 #[cfg(test)]
 mod tests {
+    use std::cmp::{max, min};
     use std::collections::HashSet;
     use std::sync::Arc;
 
@@ -722,7 +732,9 @@ mod tests {
         // Everyone raises by one
         for i in 0..NUMBER_OF_PLAYERS as i32 {
             table.take_action(HandAction::Raise(1));
-            assert_eq!(table.get_largest_active_bet(), 2 + i);
+            let actual_largest_active_bet = table.get_largest_active_bet() as usize;
+            let correct_largest_bet = i + 2;
+            assert_eq!(actual_largest_active_bet, correct_largest_bet);
         }
         assert_eq!(table.get_largest_active_bet(), 1 + NUMBER_OF_PLAYERS as i32);
         for _ in 0..NUMBER_OF_PLAYERS {
@@ -755,6 +767,24 @@ mod tests {
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Call);
+        }
+    }
+
+    #[test]
+    fn test_players_raising_over_pot_limit() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        assert!(table.table_state == PreFlop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        let mut correct_largest_bet = 1;
+        // Everyone raises by one
+        for _ in 0..NUMBER_OF_PLAYERS {
+            correct_largest_bet += table.pot;
+            correct_largest_bet = min(correct_largest_bet, DEFAULT_START_MONEY);
+            table.take_action(HandAction::Raise(i32::MAX / 2));
+            let actual_largest_active_bet = table.get_largest_active_bet();
+            assert_eq!(actual_largest_active_bet, correct_largest_bet);
         }
     }
 
@@ -940,5 +970,22 @@ mod tests {
         for (player, id) in zipped {
             assert_eq!(player.get_id(), *id);
         }
+    }
+
+    #[test]
+    pub fn test_ante_increase()
+    {
+        const NUMBER_OF_PLAYERS: usize = 2;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        for _ in 0..(NUMBER_OF_PLAYERS * 2 - 1) {
+            assert_eq!(table.ante, 1);
+            table.deal();
+        }
+        for _ in 0..NUMBER_OF_PLAYERS * 2 {
+            assert_eq!(table.ante, 1 + Table::ANTE_INCREASE_AMOUNT);
+            table.deal();
+        }
+        assert_eq!(table.ante, 1 + 2 * Table::ANTE_INCREASE_AMOUNT);
     }
 }
