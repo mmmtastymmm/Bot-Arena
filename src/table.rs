@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::cmp::{min, Ordering};
 use std::fmt;
 use std::fmt::Formatter;
 use std::slice::Iter;
@@ -191,7 +191,6 @@ impl Table {
     }
 
     fn take_provided_action(&mut self, hand_action: HandAction, active_state: ActiveState) {
-        //TODO: Saturate to pot limit.
         let difference = self.get_largest_active_bet() - active_state.current_bet;
         // Now check how to advance the hand
         match hand_action {
@@ -209,7 +208,9 @@ impl Table {
                 self.pot += self.get_current_player().bet(difference);
             }
             HandAction::Raise(raise_amount) => {
-                self.pot += self.get_current_player().bet(difference + raise_amount);
+                // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
+                let acceptable_bet = min(raise_amount + difference, self.pot + difference);
+                self.pot += self.get_current_player().bet(acceptable_bet);
             }
         }
         // Update to point at the next player
@@ -461,6 +462,7 @@ impl Table {
 
 #[cfg(test)]
 mod tests {
+    use std::cmp::{max, min};
     use std::collections::HashSet;
     use std::sync::Arc;
 
@@ -696,12 +698,14 @@ mod tests {
         const NUMBER_OF_PLAYERS: usize = 23;
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
-        table.deal();
         assert!(table.table_state == PreFlop);
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         // Everyone raises by one
-        for _ in 0..NUMBER_OF_PLAYERS {
+        for i in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Raise(1));
+            let actual_largest_active_bet = table.get_largest_active_bet() as usize;
+            let correct_largest_bet = i + 2;
+            assert_eq!(actual_largest_active_bet, correct_largest_bet);
         }
         assert_eq!(table.get_largest_active_bet(), 1 + NUMBER_OF_PLAYERS as i32);
         for _ in 0..NUMBER_OF_PLAYERS {
@@ -734,6 +738,24 @@ mod tests {
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Call);
+        }
+    }
+
+    #[test]
+    fn test_players_raising_over_pot_limit() {
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        assert!(table.table_state == PreFlop);
+        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        let mut correct_largest_bet = 1;
+        // Everyone raises by one
+        for _ in 0..NUMBER_OF_PLAYERS {
+            correct_largest_bet += table.pot;
+            correct_largest_bet = min(correct_largest_bet, DEFAULT_START_MONEY);
+            table.take_action(HandAction::Raise(i32::MAX / 2));
+            let actual_largest_active_bet = table.get_largest_active_bet();
+            assert_eq!(actual_largest_active_bet, correct_largest_bet);
         }
     }
 
