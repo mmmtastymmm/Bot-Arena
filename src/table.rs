@@ -35,6 +35,8 @@ pub struct Table {
     table_state: BetStage,
     /// How much money is currently in the pot
     pot: i32,
+    /// How frequently (after "ante_round_increase" rounds) the ante should be increased
+    ante_round_increase: i32
 }
 
 impl fmt::Display for Table {
@@ -53,6 +55,7 @@ impl fmt::Display for Table {
 }
 
 impl Table {
+    const ANTE_INCREASE_AMOUNT: i32 = 1;
     /// Makes a table of with the specified number of players.
     pub fn new(number_of_players: usize, evaluator: Arc<Evaluator>) -> Self {
         if number_of_players > 23 {
@@ -75,6 +78,7 @@ impl Table {
             current_player_index: initial_index,
             table_state: PreFlop,
             pot: 0,
+            ante_round_increase: number_of_players as i32 * 2
         };
         table.deal();
         table
@@ -277,6 +281,10 @@ impl Table {
         self.deal_player_cards_collect_ante(&mut deck_iterator);
         // Find the next alive player index for dealer button
         self.find_next_deal_button_index_and_update_current_player();
+        // If it is time to increase the ante do so.
+        if (self.hand_number) % self.ante_round_increase == 0 {
+            self.ante += Table::ANTE_INCREASE_AMOUNT;
+        }
     }
 
     /// Finds the next dealer button index (next player in the list that is alive
@@ -941,5 +949,22 @@ mod tests {
         for (player, id) in zipped {
             assert_eq!(player.get_id(), *id);
         }
+    }
+
+    #[test]
+    pub fn test_ante_increase()
+    {
+        const NUMBER_OF_PLAYERS: usize = 2;
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        for _ in 0..(NUMBER_OF_PLAYERS * 2 - 1) {
+            assert_eq!(table.ante, 1);
+            table.deal();
+        }
+        for _ in 0..NUMBER_OF_PLAYERS * 2 {
+            assert_eq!(table.ante, 1 + Table::ANTE_INCREASE_AMOUNT);
+            table.deal();
+        }
+        assert_eq!(table.ante, 1 + 2 * Table::ANTE_INCREASE_AMOUNT);
     }
 }
