@@ -215,7 +215,7 @@ impl Table {
             }
             HandAction::Raise(raise_amount) => {
                 // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
-                let acceptable_bet = min(raise_amount + difference, self.pot + difference);
+                let acceptable_bet = min(raise_amount + difference, self.get_pot_size() + difference);
                 let bet_amount = self.get_current_player().bet(acceptable_bet);
                 let index = self.get_current_player().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
@@ -223,6 +223,10 @@ impl Table {
         }
         // Update to point at the next player
         self.update_current_player_index_to_next_active();
+    }
+
+    pub fn get_pot_size(&self) -> i32 {
+        self.player_bets.iter().sum::<i32>()
     }
 
     pub fn get_results(&self) -> String {
@@ -413,7 +417,7 @@ impl Table {
             self.players.iter_mut().find(|x| match x.player_state {
                 PlayerState::Folded => { false }
                 PlayerState::Active(_) => { true }
-            }).unwrap().total_money += self.player_bets.iter().sum::<i32>();
+            }).unwrap().total_money += self.get_pot_size();
         }
         // Otherwise we need to give out winnings based on hand strength
         let sorted_players = self.get_hand_result();
@@ -730,7 +734,7 @@ mod tests {
         assert!(table.table_state == PreFlop);
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
         // Everyone raises by one
-        for i in 0..NUMBER_OF_PLAYERS as i32 {
+        for i in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Raise(1));
             let actual_largest_active_bet = table.get_largest_active_bet() as usize;
             let correct_largest_bet = i + 2;
@@ -780,7 +784,7 @@ mod tests {
         let mut correct_largest_bet = 1;
         // Everyone raises by one
         for _ in 0..NUMBER_OF_PLAYERS {
-            correct_largest_bet += table.pot;
+            correct_largest_bet += table.get_pot_size();
             correct_largest_bet = min(correct_largest_bet, DEFAULT_START_MONEY);
             table.take_action(HandAction::Raise(i32::MAX / 2));
             let actual_largest_active_bet = table.get_largest_active_bet();
