@@ -495,7 +495,7 @@ impl Table {
 
 #[cfg(test)]
 mod tests {
-    use std::cmp::{max, min};
+    use std::cmp::min;
     use std::collections::HashSet;
     use std::sync::Arc;
 
@@ -991,5 +991,36 @@ mod tests {
             table.deal();
         }
         assert_eq!(table.ante, 1 + 2 * Table::ANTE_INCREASE_AMOUNT);
+    }
+
+    #[test]
+    pub fn test_sort_by_bet_amount() {
+        let mut table = deal_test_cards();
+        for (i, player) in &mut table.players.iter_mut().enumerate() {
+            if let PlayerState::Active(active) = &mut player.player_state {
+                active.current_bet = i as i32;
+            }
+        }
+        let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
+        table.players.sort_by(Table::compare_players_by_bet_amount);
+        for (i, player) in table.players.iter().enumerate() {
+            assert_eq!(right_indexes[i], player.get_id() as usize)
+        }
+    }
+
+    #[test]
+    pub fn test_sort_by_bet_amount_reversed() {
+        let mut table = deal_test_cards();
+        for (i, player) in &mut table.players.iter_mut().enumerate() {
+            if let PlayerState::Active(active) = &mut player.player_state {
+                active.current_bet = i as i32;
+            }
+        }
+        table.players.reverse();
+        let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
+        table.players.sort_by(Table::compare_players_by_bet_amount);
+        for (i, player) in table.players.iter().enumerate() {
+            assert_eq!(right_indexes[i], player.get_id() as usize)
+        }
     }
 }
