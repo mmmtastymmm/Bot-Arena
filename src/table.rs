@@ -424,7 +424,26 @@ impl Table {
         for mut list_of_players in sorted_players {
             // Sort by the smallest bet to the largest bet
             list_of_players.sort_by(Table::compare_players_by_bet_amount);
-            // let player_size = list_of_players.len();
+            // filter out any folded players just in case
+            let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| x.player_state.is_active()).collect();
+            let mut player_size = list_of_players.len() as i32;
+            for (i, player) in list_of_players.iter().enumerate() {
+                if self.get_pot_size() == 0 {
+                    break;
+                }
+                if let PlayerState::Active(active) = player.player_state {
+                    // Take the bet from everyone
+                    let mut total = 0;
+                    for bet in &mut self.player_bets {
+                        let side_pot_amount = min(active.current_bet, *bet);
+                        *bet -= side_pot_amount;
+                        total += side_pot_amount;
+                    }
+                    let each_player_payout = total / player_size;
+                    let remainder = total % player_size;
+                    // TODO
+                }
+            }
         }
         self.deal();
     }
