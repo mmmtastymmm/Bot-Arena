@@ -33,8 +33,8 @@ pub struct Table {
     current_player_index: usize,
     /// State needed for table betting information
     table_state: BetStage,
-    /// How much money is currently in the pot
-    pot: i32,
+    /// Player bets, how much each player has bet so far
+    player_bets: Vec<i32>,
     /// How frequently (after "ante_round_increase" rounds) the ante should be increased
     ante_round_increase: i32
 }
@@ -77,7 +77,7 @@ impl Table {
             hand_number: 0,
             current_player_index: initial_index,
             table_state: PreFlop,
-            pot: 0,
+            player_bets: vec![0; number_of_players],
             ante_round_increase: number_of_players as i32 * 2
         };
         table.deal();
@@ -209,16 +209,24 @@ impl Table {
                 }
             }
             HandAction::Call => {
-                self.pot += self.get_current_player().bet(difference);
+                let bet_amount = self.get_current_player().bet(difference);
+                let index = self.get_current_player().get_id() as usize;
+                *self.player_bets.get_mut(index).unwrap() += bet_amount;
             }
             HandAction::Raise(raise_amount) => {
                 // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
-                let acceptable_bet = min(raise_amount + difference, self.pot + difference);
-                self.pot += self.get_current_player().bet(acceptable_bet);
+                let acceptable_bet = min(raise_amount + difference, self.get_pot_size() + difference);
+                let bet_amount = self.get_current_player().bet(acceptable_bet);
+                let index = self.get_current_player().get_id() as usize;
+                *self.player_bets.get_mut(index).unwrap() += bet_amount;
             }
         }
         // Update to point at the next player
         self.update_current_player_index_to_next_active();
+    }
+
+    pub fn get_pot_size(&self) -> i32 {
+        self.player_bets.iter().sum::<i32>()
     }
 
     pub fn get_results(&self) -> String {
@@ -267,8 +275,8 @@ impl Table {
         }
         // Increment the hand number
         self.hand_number += 1;
-        // Set the pot back to zero
-        self.pot = 0;
+        // Reset all player bets to zero
+        self.player_bets = vec![0; self.players.len()];
         // Reset the state for a new round of betting
         self.reset_state_for_new_round();
         // Check all players for death
@@ -341,12 +349,12 @@ impl Table {
     /// Deal cards to the alive players and collect the ante from them.
     fn deal_player_cards_collect_ante(&mut self, deck_iterator: &mut Iter<Card>) {
         // Deal every alive player cards now
-        for player in &mut self.players {
+        for (i, player) in &mut self.players.iter_mut().enumerate() {
             if player.is_alive() {
                 let card1 = *deck_iterator.next().unwrap();
                 let card2 = *deck_iterator.next().unwrap();
                 player.deal([card1, card2]);
-                self.pot += player.bet(self.ante);
+                *self.player_bets.get_mut(i).unwrap() += player.bet(self.ante);
                 // the ante doesn't count as a turn so clarify the bot hasn't had a turn
                 player.has_had_turn_this_round = false;
             }
@@ -409,11 +417,47 @@ impl Table {
             self.players.iter_mut().find(|x| match x.player_state {
                 PlayerState::Folded => { false }
                 PlayerState::Active(_) => { true }
-            }).unwrap().total_money += self.pot;
+            }).unwrap().total_money += self.get_pot_size();
         }
-        // TODO give the winnings out based on hand strength
+        // Otherwise we need to give out winnings based on hand strength
+        let sorted_players = self.get_hand_result();
+        for mut list_of_players in sorted_players {
+            // Sort by the smallest bet to the largest bet
+            list_of_players.sort_by(Table::compare_players_by_bet_amount);
+            // filter out any folded players just in case
+            let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| x.player_state.is_active()).collect();
+            let mut player_size = list_of_players.len() as i32;
+            for (i, player) in list_of_players.iter().enumerate() {
+                if self.get_pot_size() == 0 {
+                    break;
+                }
+                if let PlayerState::Active(active) = player.player_state {
+                    // Take the bet from everyone
+                    let mut total = 0;
+                    for bet in &mut self.player_bets {
+                        let side_pot_amount = min(active.current_bet, *bet);
+                        *bet -= side_pot_amount;
+                        total += side_pot_amount;
+                    }
+                    let each_player_payout = total / player_size;
+                    let remainder = total % player_size;
+                    // TODO
+                }
+            }
+        }
         self.deal();
     }
+
+    fn compare_players_by_bet_amount(player1: &Player, player2: &Player) -> Ordering {
+        let player_states = (player1.player_state, player2.player_state);
+        match player_states {
+            (PlayerState::Folded, PlayerState::Folded) => { player1.get_id().cmp(&player2.get_id()) }
+            (PlayerState::Active(_), PlayerState::Folded) => { Ordering::Greater }
+            (PlayerState::Folded, PlayerState::Active(_)) => { Ordering::Less }
+            (PlayerState::Active(one), PlayerState::Active(two)) => { one.current_bet.cmp(&two.current_bet) }
+        }
+    }
+
     fn get_current_player(&mut self) -> &mut Player {
         self.players.get_mut(self.current_player_index).unwrap()
     }
@@ -470,7 +514,7 @@ impl Table {
 
 #[cfg(test)]
 mod tests {
-    use std::cmp::{max, min};
+    use std::cmp::min;
     use std::collections::HashSet;
     use std::sync::Arc;
 
@@ -759,7 +803,7 @@ mod tests {
         let mut correct_largest_bet = 1;
         // Everyone raises by one
         for _ in 0..NUMBER_OF_PLAYERS {
-            correct_largest_bet += table.pot;
+            correct_largest_bet += table.get_pot_size();
             correct_largest_bet = min(correct_largest_bet, DEFAULT_START_MONEY);
             table.take_action(HandAction::Raise(i32::MAX / 2));
             let actual_largest_active_bet = table.get_largest_active_bet();
@@ -966,5 +1010,36 @@ mod tests {
             table.deal();
         }
         assert_eq!(table.ante, 1 + 2 * Table::ANTE_INCREASE_AMOUNT);
+    }
+
+    #[test]
+    pub fn test_sort_by_bet_amount() {
+        let mut table = deal_test_cards();
+        for (i, player) in &mut table.players.iter_mut().enumerate() {
+            if let PlayerState::Active(active) = &mut player.player_state {
+                active.current_bet = i as i32;
+            }
+        }
+        let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
+        table.players.sort_by(Table::compare_players_by_bet_amount);
+        for (i, player) in table.players.iter().enumerate() {
+            assert_eq!(right_indexes[i], player.get_id() as usize)
+        }
+    }
+
+    #[test]
+    pub fn test_sort_by_bet_amount_reversed() {
+        let mut table = deal_test_cards();
+        for (i, player) in &mut table.players.iter_mut().enumerate() {
+            if let PlayerState::Active(active) = &mut player.player_state {
+                active.current_bet = i as i32;
+            }
+        }
+        table.players.reverse();
+        let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
+        table.players.sort_by(Table::compare_players_by_bet_amount);
+        for (i, player) in table.players.iter().enumerate() {
+            assert_eq!(right_indexes[i], player.get_id() as usize)
+        }
     }
 }
