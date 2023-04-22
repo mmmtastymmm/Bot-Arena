@@ -439,9 +439,18 @@ impl Table {
                         *bet -= side_pot_amount;
                         total += side_pot_amount;
                     }
+                    let total = total;
                     let each_player_payout = total / player_size;
                     let remainder = total % player_size;
-                    // TODO
+                    for j in i..list_of_players.len() {
+                        let winning_id = list_of_players[j].get_id();
+                        let winner = self.players.iter_mut().find(|x| x.get_id() == winning_id).unwrap();
+                        winner.total_money += each_player_payout;
+                        if (j as i32) < remainder {
+                            winner.total_money += 1;
+                        }
+                    }
+                    player_size -= 1;
                 }
             }
         }
@@ -527,6 +536,25 @@ mod tests {
     use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
     use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
+
+    pub fn check_table_has_right_amount(table: &Table) {
+        let player_amount = table.players.iter().map(|x| x.total_money).sum::<i32>();
+        let pot_size = table.get_pot_size();
+        let table_sum = player_amount + pot_size;
+        assert_eq!(table_sum, table.players.len() as i32 * DEFAULT_START_MONEY);
+    }
+
+    #[test]
+    pub fn one_winner() {
+        // Required for the table evaluator
+        let mut table = deal_test_cards();
+        check_table_has_right_amount(&table);
+        table.resolve_hand();
+        for player in &table.players {
+            assert!(player.is_alive());
+        }
+        check_table_has_right_amount(&table);
+    }
 
     #[test]
     pub fn test_deal_correct_size() {
@@ -906,6 +934,10 @@ mod tests {
     fn deal_test_cards() -> Table {
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(6, shared_evaluator);
+        let previous_bets: Vec<i32> = table.players.iter().map(|x| match x.player_state {
+            PlayerState::Folded => { 0 }
+            PlayerState::Active(a) => { a.current_bet }
+        }).collect();
         table.flop = Some([poker::Card::new(poker::Rank::Ten, poker::Suit::Spades), poker::Card::new(poker::Rank::Jack, poker::Suit::Spades), poker::Card::new(poker::Rank::Queen, poker::Suit::Spades)]);
         table.turn = Some(poker::Card::new(poker::Rank::Two, poker::Suit::Hearts));
         table.river = Some(poker::Card::new(poker::Rank::Seven, poker::Suit::Diamonds));
@@ -918,6 +950,12 @@ mod tests {
         table.players[5].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)]);
         table.players[4].fold();
         table.players[5].fold();
+        for (player, bet) in table.players.iter_mut().zip(previous_bets.iter()) {
+            match &player.player_state {
+                PlayerState::Folded => {}
+                PlayerState::Active(mut a) => { a.current_bet = *bet; }
+            }
+        }
         table
     }
 
