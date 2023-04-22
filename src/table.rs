@@ -761,7 +761,7 @@ mod tests {
         for _ in 0..NUMBER_OF_PLAYERS {
             correct_largest_bet += table.pot;
             correct_largest_bet = min(correct_largest_bet, DEFAULT_START_MONEY);
-            table.take_action(HandAction::Raise(i32::MAX / 2));
+            table.take_action(HandAction::Raise(DEFAULT_START_MONEY * 100 / 2));
             let actual_largest_active_bet = table.get_largest_active_bet();
             assert_eq!(actual_largest_active_bet, correct_largest_bet);
         }
