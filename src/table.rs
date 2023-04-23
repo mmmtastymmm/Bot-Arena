@@ -36,7 +36,7 @@ pub struct Table {
     /// Player bets, how much each player has bet so far
     player_bets: Vec<i32>,
     /// How frequently (after "ante_round_increase" rounds) the ante should be increased
-    ante_round_increase: i32
+    ante_round_increase: i32,
 }
 
 impl fmt::Display for Table {
@@ -78,7 +78,7 @@ impl Table {
             current_player_index: initial_index,
             table_state: PreFlop,
             player_bets: vec![0; number_of_players],
-            ante_round_increase: number_of_players as i32 * 2
+            ante_round_increase: number_of_players as i32 * 2,
         };
         table.deal();
         table
@@ -320,7 +320,7 @@ impl Table {
             }
             match self.players.get(self.current_player_index).unwrap().player_state {
                 PlayerState::Folded => {}
-                PlayerState::Active(_) => { break }
+                PlayerState::Active(_) => { break; }
             }
         }
     }
@@ -934,28 +934,26 @@ mod tests {
     fn deal_test_cards() -> Table {
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(6, shared_evaluator);
-        let previous_bets: Vec<i32> = table.players.iter().map(|x| match x.player_state {
-            PlayerState::Folded => { 0 }
-            PlayerState::Active(a) => { a.current_bet }
-        }).collect();
+        // After the deal set the cards to known values
         table.flop = Some([poker::Card::new(poker::Rank::Ten, poker::Suit::Spades), poker::Card::new(poker::Rank::Jack, poker::Suit::Spades), poker::Card::new(poker::Rank::Queen, poker::Suit::Spades)]);
         table.turn = Some(poker::Card::new(poker::Rank::Two, poker::Suit::Hearts));
         table.river = Some(poker::Card::new(poker::Rank::Seven, poker::Suit::Diamonds));
 
-        table.players[0].deal([poker::Card::new(poker::Rank::Ace, poker::Suit::Spades), poker::Card::new(poker::Rank::King, poker::Suit::Spades)]);
-        table.players[1].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Diamonds), poker::Card::new(poker::Rank::Three, poker::Suit::Clubs)]);
-        table.players[2].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Three, poker::Suit::Diamonds)]);
-        table.players[3].deal([poker::Card::new(poker::Rank::Four, poker::Suit::Clubs), poker::Card::new(poker::Rank::Five, poker::Suit::Hearts)]);
-        table.players[4].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)]);
-        table.players[5].deal([poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)]);
-        table.players[4].fold();
-        table.players[5].fold();
-        for (player, bet) in table.players.iter_mut().zip(previous_bets.iter()) {
-            match &player.player_state {
-                PlayerState::Folded => {}
-                PlayerState::Active(mut a) => { a.current_bet = *bet; }
+        let hands = vec![
+            [poker::Card::new(poker::Rank::Ace, poker::Suit::Spades), poker::Card::new(poker::Rank::King, poker::Suit::Spades)],
+            [poker::Card::new(poker::Rank::Two, poker::Suit::Diamonds), poker::Card::new(poker::Rank::Three, poker::Suit::Clubs)],
+            [poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Three, poker::Suit::Diamonds)],
+            [poker::Card::new(poker::Rank::Four, poker::Suit::Clubs), poker::Card::new(poker::Rank::Five, poker::Suit::Hearts)],
+            [poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
+            [poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
+        ];
+        for (i, hand) in hands.into_iter().enumerate(){
+            if let PlayerState::Active(active) = &mut table.players[i].player_state{
+                active.hand = hand;
             }
         }
+        table.players[4].fold();
+        table.players[5].fold();
         table
     }
 
