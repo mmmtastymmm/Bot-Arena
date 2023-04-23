@@ -843,23 +843,24 @@ mod tests {
     #[test]
     fn test_one_raise_all_checks() {
         const NUMBER_OF_PLAYERS: usize = 23;
-        let shared_evaluator = Arc::new(Evaluator::new());
-        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
-        table.take_action(HandAction::Raise(1));
-        assert!(table.table_state == PreFlop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
-        for _ in 0..NUMBER_OF_PLAYERS - 1 {
-            table.take_action(HandAction::Check);
+        let raise_amounts = vec![1, 2, 3, 4];
+        for raise_amount in raise_amounts {
+            let shared_evaluator = Arc::new(Evaluator::new());
+            let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+            table.take_action(HandAction::Raise(raise_amount));
+            assert!(table.table_state == PreFlop);
+            assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+            for _ in 0..NUMBER_OF_PLAYERS - 1 {
+                table.take_action(HandAction::Check);
+            }
+            // Check the table has the right amount of money
+            check_table_has_right_amount(&table);
+            // All players should be have folded except one and the table should have reset
+            assert!(table.table_state == PreFlop);
+            // Check that the first player (index 1, left of dealer chip) won the ante
+            let winner_amount = (NUMBER_OF_PLAYERS - 1) as i32 * table.ante - table.ante + DEFAULT_START_MONEY;
+            assert_eq!(table.players.get(1).unwrap().total_money, winner_amount);
         }
-        // Check the table has the right amount of money
-        check_table_has_right_amount(&table);
-        // All players should be have folded except one and the table should have reset
-        assert!(table.table_state == PreFlop);
-        // Check that the first player (index 1, left of dealer chip) won the ante
-        assert_eq!(
-            table.players.get(1).unwrap().total_money,
-            DEFAULT_START_MONEY + (NUMBER_OF_PLAYERS as i32 - 2) * table.ante
-        );
     }
 
     #[test]
