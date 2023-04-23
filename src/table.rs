@@ -538,6 +538,7 @@ mod tests {
     use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
 
+    // TODO check a tie, side pot thing
     pub fn check_table_has_right_amount(table: &Table) {
         let player_amount = table.players.iter().map(|x| x.total_money).sum::<i32>();
         let pot_size = table.get_pot_size();
