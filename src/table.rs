@@ -418,39 +418,40 @@ impl Table {
                 PlayerState::Folded => { false }
                 PlayerState::Active(_) => { true }
             }).unwrap().total_money += self.get_pot_size();
-        }
-        // Otherwise we need to give out winnings based on hand strength
-        let sorted_players = self.get_hand_result();
-        for mut list_of_players in sorted_players {
-            // Sort by the smallest bet to the largest bet
-            list_of_players.sort_by(Table::compare_players_by_bet_amount);
-            // filter out any folded players just in case
-            let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| x.player_state.is_active()).collect();
-            let mut player_size = list_of_players.len() as i32;
-            for (i, player) in list_of_players.iter().enumerate() {
-                if self.get_pot_size() == 0 {
-                    break;
-                }
-                if let PlayerState::Active(active) = player.player_state {
-                    // Take the bet from everyone
-                    let mut total = 0;
-                    for bet in &mut self.player_bets {
-                        let side_pot_amount = min(active.current_bet, *bet);
-                        *bet -= side_pot_amount;
-                        total += side_pot_amount;
+        } else {
+            // Otherwise we need to give out winnings based on hand strength
+            let sorted_players = self.get_hand_result();
+            for mut list_of_players in sorted_players {
+                // Sort by the smallest bet to the largest bet
+                list_of_players.sort_by(Table::compare_players_by_bet_amount);
+                // filter out any folded players just in case
+                let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| x.player_state.is_active()).collect();
+                let mut player_size = list_of_players.len() as i32;
+                for (i, player) in list_of_players.iter().enumerate() {
+                    if self.get_pot_size() == 0 {
+                        break;
                     }
-                    let total = total;
-                    let each_player_payout = total / player_size;
-                    let remainder = total % player_size;
-                    for j in i..list_of_players.len() {
-                        let winning_id = list_of_players[j].get_id();
-                        let winner = self.players.iter_mut().find(|x| x.get_id() == winning_id).unwrap();
-                        winner.total_money += each_player_payout;
-                        if (j as i32) < remainder {
-                            winner.total_money += 1;
+                    if let PlayerState::Active(active) = player.player_state {
+                        // Take the bet from everyone
+                        let mut total = 0;
+                        for bet in &mut self.player_bets {
+                            let side_pot_amount = min(active.current_bet, *bet);
+                            *bet -= side_pot_amount;
+                            total += side_pot_amount;
                         }
+                        let total = total;
+                        let each_player_payout = total / player_size;
+                        let remainder = total % player_size;
+                        for j in i..list_of_players.len() {
+                            let winning_id = list_of_players[j].get_id();
+                            let winner = self.players.iter_mut().find(|x| x.get_id() == winning_id).unwrap();
+                            winner.total_money += each_player_payout;
+                            if (j as i32) < remainder {
+                                winner.total_money += 1;
+                            }
+                        }
+                        player_size -= 1;
                     }
-                    player_size -= 1;
                 }
             }
         }
@@ -850,6 +851,8 @@ mod tests {
         for _ in 0..NUMBER_OF_PLAYERS - 1 {
             table.take_action(HandAction::Check);
         }
+        // Check the table has the right amount of money
+        check_table_has_right_amount(&table);
         // All players should be have folded except one and the table should have reset
         assert!(table.table_state == PreFlop);
         // Check that the first player (index 1, left of dealer chip) won the ante
@@ -947,8 +950,8 @@ mod tests {
             [poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
             [poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
         ];
-        for (i, hand) in hands.into_iter().enumerate(){
-            if let PlayerState::Active(active) = &mut table.players[i].player_state{
+        for (i, hand) in hands.into_iter().enumerate() {
+            if let PlayerState::Active(active) = &mut table.players[i].player_state {
                 active.hand = hand;
             }
         }
