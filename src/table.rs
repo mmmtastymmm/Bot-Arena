@@ -555,6 +555,21 @@ mod tests {
             assert!(player.is_alive());
         }
         check_table_has_right_amount(&table);
+        assert_eq!((table.players.len() as i32 - 2) * table.ante + DEFAULT_START_MONEY, table.players.get(0).unwrap().total_money);
+    }
+
+    #[test]
+    pub fn two_winners() {
+        // Required for the table evaluator
+        let mut table = deal_test_cards_tied_best();
+        check_table_has_right_amount(&table);
+        table.resolve_hand();
+        for player in &table.players {
+            assert!(player.is_alive());
+        }
+        check_table_has_right_amount(&table);
+        assert_eq!((table.players.len() as i32 - 1) * table.ante / 2 - table.ante + DEFAULT_START_MONEY, table.players.get(0).unwrap().total_money);
+        assert_eq!((table.players.len() as i32 - 1) * table.ante / 2 - table.ante + DEFAULT_START_MONEY, table.players.get(1).unwrap().total_money);
     }
 
     #[test]
@@ -958,6 +973,17 @@ mod tests {
         }
         table.players[4].fold();
         table.players[5].fold();
+        table
+    }
+
+    fn deal_test_cards_tied_best() -> Table {
+        let mut table = deal_test_cards();
+        if let PlayerState::Active(active) = &mut table.players[0].player_state {
+            active.hand = [poker::Card::new(poker::Rank::Ace, poker::Suit::Hearts), poker::Card::new(poker::Rank::King, poker::Suit::Hearts)];
+        }
+        if let PlayerState::Active(active) = &mut table.players[1].player_state {
+            active.hand = [poker::Card::new(poker::Rank::Ace, poker::Suit::Diamonds), poker::Card::new(poker::Rank::King, poker::Suit::Diamonds)];
+        }
         table
     }
 
