@@ -1,6 +1,6 @@
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum BetStage {
     PreFlop,
     Flop,
