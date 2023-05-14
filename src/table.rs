@@ -419,7 +419,24 @@ impl Table {
             .unwrap()
     }
 
+    ///
+    /// Returns the difference between each players bets,
+    /// checks they're sorted lowest to highest bet amount so the vector will be all positive
+    /// # Arguments
+    ///
+    /// * `players`: A list of players sorted by their bet amounts
+    ///
+    /// returns: Vec<i32> The difference between all the current bets
+    ///
     fn get_bet_increases_amount(players: &[Player]) -> Vec<i32> {
+        // Check that the slice is sorted
+        let bets: Vec<i32> = players.iter().map(|x| match x.player_state {
+            PlayerState::Folded => { panic!("Passed a folded player.") }
+            PlayerState::Active(a) => { a.current_bet }
+        }).collect();
+        if bets.windows(2).any(|w| w[0] > w[1]) {
+            panic!("Players are not sorted by their bets.")
+        }
         let mut return_vector = vec![0; players.len()];
         let mut total = 0;
         for (i, player) in players.iter().enumerate() {
