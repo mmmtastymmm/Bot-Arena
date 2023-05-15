@@ -565,7 +565,7 @@ mod tests {
     use std::collections::HashSet;
     use std::sync::Arc;
 
-    use poker::Evaluator;
+    use poker::{Card, Evaluator};
     use rand::Rng;
     use rand::seq::SliceRandom;
     use rand::thread_rng;
