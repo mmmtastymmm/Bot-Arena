@@ -580,17 +580,17 @@ mod tests {
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(6, shared_evaluator);
         // After the deal set the cards to known values
-        table.flop = Some([poker::Card::new(poker::Rank::Ten, poker::Suit::Spades), poker::Card::new(poker::Rank::Jack, poker::Suit::Spades), poker::Card::new(poker::Rank::Queen, poker::Suit::Spades)]);
-        table.turn = Some(poker::Card::new(poker::Rank::Two, poker::Suit::Hearts));
-        table.river = Some(poker::Card::new(poker::Rank::Seven, poker::Suit::Diamonds));
+        table.flop = Some([Card::new(poker::Rank::Ten, poker::Suit::Spades), Card::new(poker::Rank::Jack, poker::Suit::Spades), Card::new(poker::Rank::Queen, poker::Suit::Spades)]);
+        table.turn = Some(Card::new(poker::Rank::Two, poker::Suit::Hearts));
+        table.river = Some(Card::new(poker::Rank::Seven, poker::Suit::Diamonds));
 
         let hands = vec![
-            [poker::Card::new(poker::Rank::Ace, poker::Suit::Spades), poker::Card::new(poker::Rank::King, poker::Suit::Spades)],
-            [poker::Card::new(poker::Rank::Two, poker::Suit::Diamonds), poker::Card::new(poker::Rank::Three, poker::Suit::Clubs)],
-            [poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Three, poker::Suit::Diamonds)],
-            [poker::Card::new(poker::Rank::Four, poker::Suit::Clubs), poker::Card::new(poker::Rank::Five, poker::Suit::Hearts)],
-            [poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
-            [poker::Card::new(poker::Rank::Two, poker::Suit::Clubs), poker::Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
+            [Card::new(poker::Rank::Ace, poker::Suit::Spades), Card::new(poker::Rank::King, poker::Suit::Spades)],
+            [Card::new(poker::Rank::Two, poker::Suit::Diamonds), Card::new(poker::Rank::Three, poker::Suit::Clubs)],
+            [Card::new(poker::Rank::Two, poker::Suit::Clubs), Card::new(poker::Rank::Three, poker::Suit::Diamonds)],
+            [Card::new(poker::Rank::Four, poker::Suit::Clubs), Card::new(poker::Rank::Five, poker::Suit::Hearts)],
+            [Card::new(poker::Rank::Two, poker::Suit::Clubs), Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
+            [Card::new(poker::Rank::Two, poker::Suit::Clubs), Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
         ];
         for (i, hand) in hands.into_iter().enumerate() {
             if let PlayerState::Active(active) = &mut table.players[i].player_state {
@@ -605,10 +605,10 @@ mod tests {
     fn deal_test_cards_tied_best() -> Table {
         let mut table = deal_test_cards();
         if let PlayerState::Active(active) = &mut table.players[0].player_state {
-            active.hand = [poker::Card::new(poker::Rank::Ace, poker::Suit::Hearts), poker::Card::new(poker::Rank::King, poker::Suit::Hearts)];
+            active.hand = [Card::new(poker::Rank::Ace, poker::Suit::Hearts), Card::new(poker::Rank::King, poker::Suit::Hearts)];
         }
         if let PlayerState::Active(active) = &mut table.players[1].player_state {
-            active.hand = [poker::Card::new(poker::Rank::Ace, poker::Suit::Diamonds), poker::Card::new(poker::Rank::King, poker::Suit::Diamonds)];
+            active.hand = [Card::new(poker::Rank::Ace, poker::Suit::Diamonds), Card::new(poker::Rank::King, poker::Suit::Diamonds)];
         }
         table
     }
@@ -1005,9 +1005,9 @@ mod tests {
         const NUMBER_OF_PLAYERS: usize = 23;
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
-        assert!(table.table_state == PreFlop);
+        assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
-        for _ in 0..10000 {
+        for _ in 0..100000 {
             let mut rng = thread_rng();
             let action_int = rng.gen_range(0..4);
             match action_int {
