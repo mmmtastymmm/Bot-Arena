@@ -1193,4 +1193,27 @@ mod tests {
             assert_eq!(right_indexes[i], player.get_id() as usize)
         }
     }
+
+    #[test]
+    pub fn test_only_unique_cards() {
+        let shared_evaluator = Arc::new(Evaluator::new());
+        const NUMBER_OF_PLAYERS: usize = 23;
+        for _ in 0..100000 {
+            let table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
+            let mut set: HashSet<Card> = HashSet::new();
+            set.extend(table.flop.unwrap().iter());
+            set.insert(table.turn.unwrap());
+            set.insert(table.river.unwrap());
+
+            for player in table.players {
+                match player.player_state {
+                    PlayerState::Folded => {}
+                    PlayerState::Active(a) => {
+                        set.extend(a.hand.iter())
+                    }
+                }
+            }
+            assert_eq!(set.len(), NUMBER_OF_PLAYERS * 2 + 5);
+        }
+    }
 }
