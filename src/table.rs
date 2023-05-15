@@ -1216,4 +1216,31 @@ mod tests {
             assert_eq!(set.len(), NUMBER_OF_PLAYERS * 2 + 5);
         }
     }
+
+    #[test]
+    pub fn test_only_unique_cards_with_deal() {
+        let shared_evaluator = Arc::new(Evaluator::new());
+        const NUMBER_OF_PLAYERS: usize = 23;
+        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        table.ante = 0;
+        const ROUNDS: i32 = 100000;
+        table.ante_round_increase = ROUNDS;
+        for _ in 0..ROUNDS {
+            table.deal();
+            let mut set: HashSet<Card> = HashSet::new();
+            set.extend(table.flop.unwrap().iter());
+            set.insert(table.turn.unwrap());
+            set.insert(table.river.unwrap());
+
+            for player in &table.players {
+                match player.player_state {
+                    PlayerState::Folded => {}
+                    PlayerState::Active(a) => {
+                        set.extend(a.hand.iter())
+                    }
+                }
+            }
+            assert_eq!(set.len(), NUMBER_OF_PLAYERS * 2 + 5);
+        }
+    }
 }
