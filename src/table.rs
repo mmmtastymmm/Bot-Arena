@@ -574,7 +574,7 @@ mod tests {
 
     use crate::actions::HandAction;
     use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-    use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
+    use crate::player_components::{ActiveState, DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
 
     fn deal_test_cards() -> Table {
@@ -611,6 +611,33 @@ mod tests {
         if let PlayerState::Active(active) = &mut table.players[1].player_state {
             active.hand = [Card::new(poker::Rank::Ace, poker::Suit::Diamonds), Card::new(poker::Rank::King, poker::Suit::Diamonds)];
         }
+        table
+    }
+
+    fn two_sets_of_ties() -> Table {
+        let shared_evaluator = Arc::new(Evaluator::new());
+        let mut table = Table::new(6, shared_evaluator);
+        // After the deal set the cards to known values
+        table.flop = Some([Card::new(poker::Rank::Ten, poker::Suit::Spades), Card::new(poker::Rank::Jack, poker::Suit::Spades), Card::new(poker::Rank::Queen, poker::Suit::Spades)]);
+        table.turn = Some(Card::new(poker::Rank::Two, poker::Suit::Hearts));
+        table.river = Some(Card::new(poker::Rank::Seven, poker::Suit::Diamonds));
+        let hands = vec![
+            [Card::new(poker::Rank::Ace, poker::Suit::Hearts), Card::new(poker::Rank::King, poker::Suit::Hearts)],
+            [Card::new(poker::Rank::Ace, poker::Suit::Diamonds), Card::new(poker::Rank::King, poker::Suit::Diamonds)],
+            [Card::new(poker::Rank::Nine, poker::Suit::Hearts), Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
+            [Card::new(poker::Rank::Nine, poker::Suit::Diamonds), Card::new(poker::Rank::Eight, poker::Suit::Diamonds)],
+            [Card::new(poker::Rank::Queen, poker::Suit::Clubs), Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
+            [Card::new(poker::Rank::Two, poker::Suit::Clubs), Card::new(poker::Rank::Eight, poker::Suit::Hearts)],
+        ];
+        for (i, hand) in hands.into_iter().enumerate() {
+            if let PlayerState::Active(active) = &mut table.players[i].player_state {
+                active.hand = hand;
+            }
+        }
+        table.players[0].total_money = 0;
+        table.players[1].total_money = 0;
+        table.players[2].total_money = 1;
+        table.players[3].total_money = 1;
         table
     }
 
@@ -693,6 +720,34 @@ mod tests {
         check_table_has_right_amount(&table);
         assert_eq!((table.players.len() as i32) * table.ante / 2 - (table.ante * 2) + DEFAULT_START_MONEY, table.players.get(0).unwrap().total_money);
         assert_eq!((table.players.len() as i32) * table.ante / 2 - (table.ante * 2) + DEFAULT_START_MONEY, table.players.get(1).unwrap().total_money);
+    }
+
+    #[test]
+    pub fn test_two_side_pots() {
+        let mut table = two_sets_of_ties();
+        assert_eq!(table.get_current_player().get_id(), 1);
+        table.take_action(HandAction::Check);
+        assert_eq!(table.get_current_player().get_id(), 2);
+        table.take_action(HandAction::Raise(1));
+        assert_eq!(table.get_current_player().get_id(), 3);
+        table.take_action(HandAction::Call);
+        assert_eq!(table.get_current_player().get_id(), 4);
+        table.take_action(HandAction::Raise(10));
+        assert_eq!(table.get_current_player().get_id(), 5);
+        table.take_action(HandAction::Call);
+        for _ in 0..6 {
+            table.take_action(HandAction::Check);
+        }
+        // First two tied for 6, and ante up for the next round so they're at 2
+        assert_eq!(table.players[0].total_money, 2);
+        assert_eq!(table.players[1].total_money, 2);
+        // Second two bet 2 each, total of 12, lose 6 to above, split the other 6
+        assert_eq!(table.players[2].total_money, 2);
+        assert_eq!(table.players[3].total_money, 2);
+        // This one takes 7 from player 6, and has lost 3 from the above pots, and anted 1
+        assert_eq!(table.players[4].total_money, 503);
+        // This one just loses 11
+        assert_eq!(table.players[5].total_money, 489);
     }
 
     #[test]
