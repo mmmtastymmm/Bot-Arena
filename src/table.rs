@@ -678,7 +678,7 @@ mod tests {
             assert!(player.is_alive());
         }
         check_table_has_right_amount(&table);
-        assert_eq!((table.players.len() as i32 - 2) * table.ante + DEFAULT_START_MONEY, table.players.get(0).unwrap().total_money);
+        assert_eq!((table.players.len() as i32) * table.ante - (table.ante * 2) + DEFAULT_START_MONEY, table.players.get(0).unwrap().total_money);
     }
 
     #[test]
@@ -691,8 +691,8 @@ mod tests {
             assert!(player.is_alive());
         }
         check_table_has_right_amount(&table);
-        assert_eq!((table.players.len() as i32 - 1) * table.ante / 2 - table.ante + DEFAULT_START_MONEY, table.players.get(0).unwrap().total_money);
-        assert_eq!((table.players.len() as i32 - 1) * table.ante / 2 - table.ante + DEFAULT_START_MONEY, table.players.get(1).unwrap().total_money);
+        assert_eq!((table.players.len() as i32) * table.ante / 2 - (table.ante * 2) + DEFAULT_START_MONEY, table.players.get(0).unwrap().total_money);
+        assert_eq!((table.players.len() as i32) * table.ante / 2 - (table.ante * 2) + DEFAULT_START_MONEY, table.players.get(1).unwrap().total_money);
     }
 
     #[test]
