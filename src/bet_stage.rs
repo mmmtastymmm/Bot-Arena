@@ -28,12 +28,12 @@ mod tests {
     fn check_next_stage() {
         let mut bet_stage = BetStage::PreFlop;
         bet_stage.next_stage();
-        assert!(bet_stage == BetStage::Flop);
+        assert_eq!(bet_stage, BetStage::Flop);
         bet_stage.next_stage();
-        assert!(bet_stage == BetStage::Turn);
+        assert_eq!(bet_stage, BetStage::Turn);
         bet_stage.next_stage();
-        assert!(bet_stage == BetStage::River);
+        assert_eq!(bet_stage, BetStage::River);
         bet_stage.next_stage();
-        assert!(bet_stage == BetStage::PreFlop);
+        assert_eq!(bet_stage, BetStage::PreFlop);
     }
 }
