@@ -19,11 +19,11 @@ impl HandAction {
     fn parse_hand_action(json: &str) -> serde_json::Result<HandAction> {
         let v: Value = serde_json::from_str(json)?;
 
-        match v["action"].as_str() {
-            Some("fold") => Ok(HandAction::Fold),
-            Some("call") => Ok(HandAction::Call),
-            Some("check") => Ok(HandAction::Check),
-            Some("raise") => {
+        match v["action"].as_str().unwrap_or("bad").to_lowercase().as_str() {
+            "fold" => Ok(HandAction::Fold),
+            "call" => Ok(HandAction::Call),
+            "check" => Ok(HandAction::Check),
+            "raise" => {
                 let amount = v["amount"].as_i64().ok_or(serde_json::Error::custom("Invalid amount"))?;
                 Ok(HandAction::Raise(amount as i32))
             }
