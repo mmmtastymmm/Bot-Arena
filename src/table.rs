@@ -1,4 +1,4 @@
-use std::cmp::{min, Ordering};
+use std::cmp::{max, min, Ordering};
 use std::fmt;
 use std::fmt::Formatter;
 use std::slice::Iter;
@@ -203,7 +203,7 @@ impl Table {
                 self.get_current_player().fold();
             }
             HandAction::Check => {
-                // All in already, so stay all in
+                // Already have called largest bet (ante)
                 if difference == 0 {
                     self.get_current_player().bet(0);
                 } else {
@@ -216,6 +216,7 @@ impl Table {
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
             }
             HandAction::Raise(raise_amount) => {
+                let raise_amount = max(self.ante,raise_amount);
                 // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
                 let acceptable_bet = min(raise_amount + difference, self.get_pot_size() + difference);
                 let bet_amount = self.get_current_player().bet(acceptable_bet);
@@ -394,9 +395,10 @@ impl Table {
         }).max().unwrap()
     }
     fn check_all_players_ready_for_next_round(&self) -> bool {
-        self.players.iter().map(|x| match x.player_state {
+        self.players.iter().map(|player| match player.player_state {
             PlayerState::Folded => { true }
-            PlayerState::Active(_) => { x.has_had_turn_this_round || x.total_money == 0 }
+            //checks they have bet/checked or is already all in.
+            PlayerState::Active(_) => { player.has_had_turn_this_round || player.total_money == 0 }
         }).reduce(|x, y| x && y).unwrap()
     }
     fn check_all_active_players_same_bet(&self) -> bool {
@@ -463,7 +465,7 @@ impl Table {
             let sorted_players = self.get_hand_result();
             for mut list_of_players in sorted_players {
                 // Sort by the smallest bet to the largest bet
-                list_of_players.sort_by(Table::compare_players_by_bet_amount);
+                list_of_players.sort_by(|x,y| Table::compare_players_by_bet_amount(self.dealer_button_index,x,y));
                 // filter out any folded players just in case
                 let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| (*x).player_state.is_active()).collect();
                 let mut player_size = list_of_players.len() as i32;
@@ -497,13 +499,27 @@ impl Table {
         self.deal();
     }
 
-    fn compare_players_by_bet_amount(player1: &Player, player2: &Player) -> Ordering {
+    fn compare_players_by_bet_amount(dealer_button_index: usize, player1: &Player, player2: &Player) -> Ordering {
         let player_states = (player1.player_state, player2.player_state);
         match player_states {
             (PlayerState::Folded, PlayerState::Folded) => { player1.get_id().cmp(&player2.get_id()) }
             (PlayerState::Active(_), PlayerState::Folded) => { Ordering::Greater }
             (PlayerState::Folded, PlayerState::Active(_)) => { Ordering::Less }
-            (PlayerState::Active(one), PlayerState::Active(two)) => { one.current_bet.cmp(&two.current_bet) }
+            (PlayerState::Active(one), PlayerState::Active(two)) => {
+                if one.current_bet == two.current_bet {
+                    let one_value = player1.get_id() - dealer_button_index as i8;
+                    let two_value = player2.get_id() - dealer_button_index as i8;
+                    if one_value  >=0 && two_value <0 || two_value >=0 && one_value <0{
+                        one_value.cmp(&two_value)
+                    }
+                    else{
+                        two_value.cmp(&one_value)
+                    }
+                }
+                else{
+                    one.current_bet.cmp(&two.current_bet)
+                }
+            }
         }
     }
 
@@ -1233,7 +1249,7 @@ mod tests {
             }
         }
         let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
-        table.players.sort_by(Table::compare_players_by_bet_amount);
+        table.players.sort_by(|x,y|Table::compare_players_by_bet_amount(table.dealer_button_index,x,y));
         for (i, player) in table.players.iter().enumerate() {
             assert_eq!(right_indexes[i], player.get_id() as usize)
         }
@@ -1249,7 +1265,7 @@ mod tests {
         }
         table.players.reverse();
         let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
-        table.players.sort_by(Table::compare_players_by_bet_amount);
+        table.players.sort_by(|x,y|Table::compare_players_by_bet_amount(table.dealer_button_index,x,y));
         for (i, player) in table.players.iter().enumerate() {
             assert_eq!(right_indexes[i], player.get_id() as usize)
         }
