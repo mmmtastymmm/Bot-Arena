@@ -440,11 +440,11 @@ impl Table {
             panic!("Players are not sorted by their bets.")
         }
         let mut return_vector = vec![0; players.len()];
-        let mut total = 0;
+        let mut prev_bet = 0;
         for (i, player) in players.iter().enumerate() {
             if let PlayerState::Active(active) = player.player_state {
-                let push_back_amount = active.current_bet - total;
-                total += active.current_bet;
+                let push_back_amount = active.current_bet - prev_bet;
+                prev_bet = active.current_bet;
                 return_vector[i] = push_back_amount;
             }
         }
@@ -693,6 +693,30 @@ mod tests {
         assert_eq!(table.players[3].total_money, 497);
         assert_eq!(table.players[4].total_money, 498);
         assert_eq!(table.players[5].total_money, 498);
+    }
+
+    #[test]
+    pub fn test_get_bet_increases_amount() {
+        use crate::player_components::Player;
+        use poker::Card;
+        let mut players = vec![];
+        for i in 0..10 {
+            let mut player = Player::new(i as i8);
+            player.deal([Card::new(poker::Rank::Ace, poker::Suit::Hearts), Card::new(poker::Rank::King, poker::Suit::Hearts)]);
+            match &mut player.player_state {
+                PlayerState::Folded => {}
+                PlayerState::Active(a) => {
+                    a.current_bet = i * i;
+                }
+            }
+            players.push(player)
+        }
+        let result = Table::get_bet_increases_amount(&players);
+        assert_eq!(result[0], 0);
+        for index in 1..10 {
+            let i = index as i32;
+            assert_eq!(result[index], i * i - (i - 1) * (i - 1));
+        }
     }
 
     #[test]
