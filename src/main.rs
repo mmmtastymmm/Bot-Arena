@@ -1,4 +1,6 @@
 extern crate core;
+#[macro_use]
+extern crate log;
 
 use std::sync::Arc;
 

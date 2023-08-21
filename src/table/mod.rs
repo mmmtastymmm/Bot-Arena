@@ -167,16 +167,18 @@ impl Table {
             println!("Game is over! Results are included below:\n{}", self.get_results());
             return;
         }
-        // Make sure the player is active, or increment and go to the next player
+        // Make sure the current player is active, or panic and end the program
         if let PlayerState::Active(active) = self.get_current_player().player_state {
             self.take_provided_action(hand_action, active);
         } else {
-            panic!("Tried to take an action on a dead player");
+            panic!("Tried to take an action on an inactive player");
         }
         // If there is only 1 alive player evaluate the winner
         if self.get_alive_player_count() == 1 {
             self.resolve_hand();
             return;
+        } else if self.get_alive_player_count() == 0 {
+            panic!("Somehow all players are dead, which is a programming error")
         }
         // The round of betting is over
         if self.is_betting_over() {
@@ -322,18 +324,30 @@ impl Table {
             // Set the next active player to the next index, looping if too large
             self.current_player_index += 1;
             if self.current_player_index >= self.players.len() {
-                self.current_player_index = 0;
+                self.current_player_index -= self.players.len();
             }
             // An all in player is no longer can take actions so skip them as well
             if self.get_current_player().total_money == 0 {
                 continue;
             }
             // If the player is active while also not all in they are the next active player
-            match self.players.get(self.current_player_index).unwrap().player_state {
+            match self.get_current_player().player_state {
                 PlayerState::Folded => {}
                 PlayerState::Active(_) => { break; }
             }
         }
+        if !self.get_current_player().is_alive() {
+            let alive_count = self.players.iter().map(|x| x.is_alive()).map(|x, | match x {
+                true => { 1 }
+                false => { 0 }
+            }).reduce(|x, y| x + y).unwrap();
+            panic!("Current player not alive after update! There were {} players alive", alive_count)
+        }
+        match self.get_current_player().player_state {
+            PlayerState::Folded => { panic!("Current player not active after update!") }
+            PlayerState::Active(_) => {}
+        }
+
     }
 
     /// Deals cards for the flop, turn, and river

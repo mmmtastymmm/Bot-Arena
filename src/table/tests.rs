@@ -12,6 +12,10 @@ use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
 use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
 use crate::table::Table;
 
+fn turn_on_logging() {
+    let _ = env_logger::builder().is_test(true).try_init();
+}
+
 fn deal_test_cards() -> Table {
     let shared_evaluator = Arc::new(Evaluator::new());
     let mut table = Table::new(6, shared_evaluator);
@@ -265,10 +269,13 @@ pub fn test_lots_of_deals() {
     let shared_evaluator = Arc::new(Evaluator::new());
     const PLAYER_SIZE: usize = 23;
     let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
-    // Add a player that will die sooner
-    table.players.get_mut(0).unwrap().total_money = 100;
-    // Deal the largest table size allowed
+    // Add a player that will die later, so as to be seen as an alive winner
+    table.players.get_mut(0).unwrap().total_money = DEFAULT_START_MONEY * 10;
+    // Deal the largest table size allowed until the game is over
     for _ in 0..DEFAULT_START_MONEY * 2 {
+        if table.is_game_over() {
+            break
+        }
         table.deal();
     }
 }
@@ -519,16 +526,20 @@ fn test_one_raise_all_checks() {
 fn test_rounds_with_some_folding() {
     const NUMBER_OF_PLAYERS: usize = 23;
     let shared_evaluator = Arc::new(Evaluator::new());
-    for _ in 0..100 {
+    for round_number in 0..100 {
+        info!("Starting round: {}", round_number);
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
-        for _ in 0..1000000 {
+        for action_number in 0..1000000 {
             if table.is_game_over() {
                 break;
             }
-
-            assert!(table.get_current_player().player_state.is_active());
+            let correctness = table.get_current_player().player_state.is_active();
+            if !correctness {
+                warn!("Not correct on action number: {}", action_number);
+            }
+            assert!(correctness);
             let mut rng = thread_rng();
             let action_int = rng.gen_range(0..4);
             match action_int {
