@@ -574,7 +574,7 @@ mod tests {
 
     use crate::actions::HandAction;
     use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-    use crate::player_components::{ActiveState, DEFAULT_START_MONEY, PlayerState};
+    use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
 
     fn deal_test_cards() -> Table {
@@ -1084,22 +1084,24 @@ mod tests {
     fn test_rounds_with_some_folding() {
         const NUMBER_OF_PLAYERS: usize = 23;
         let shared_evaluator = Arc::new(Evaluator::new());
-        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        for _ in 0..100 {
+            let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
-        for _ in 0..100000 {
-            if table.is_game_over() {
-                break;
-            }
+            for _ in 0..1000000 {
+                if table.is_game_over() {
+                    break;
+                }
 
-            assert!(table.get_current_player().player_state.is_active());
-            let mut rng = thread_rng();
-            let action_int = rng.gen_range(0..4);
-            match action_int {
-                0 => { table.take_action(HandAction::Raise(1)) }
-                1 => { table.take_action(HandAction::Check) }
-                2 => { table.take_action(HandAction::Call) }
-                _ => { table.take_action(HandAction::Fold) }
+                assert!(table.get_current_player().player_state.is_active());
+                let mut rng = thread_rng();
+                let action_int = rng.gen_range(0..4);
+                match action_int {
+                    0 => { table.take_action(HandAction::Raise(1)) }
+                    1 => { table.take_action(HandAction::Check) }
+                    2 => { table.take_action(HandAction::Call) }
+                    _ => { table.take_action(HandAction::Fold) }
+                }
             }
         }
     }
