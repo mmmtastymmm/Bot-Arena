@@ -163,7 +163,7 @@ impl Table {
     /// Takes an action, could be recursive if the table needs no input
     pub fn take_action(&mut self, hand_action: HandAction) {
         // If the game is over print out a message, and do not take any actions
-        if self.is_game_over() {
+        if self.game_is_over() {
             println!("Game is over! Results are included below:\n{}", self.get_results());
             return;
         }
@@ -181,7 +181,7 @@ impl Table {
             panic!("Somehow all players are inactive, which is a programming error")
         }
         // If the betting is over update the state
-        while self.is_betting_over() && !self.is_game_over() {
+        while self.is_betting_over() && !self.game_is_over() {
             // The showdown is occurring, pick the winner
             if self.table_state == River {
                 self.resolve_hand();
@@ -265,7 +265,7 @@ impl Table {
         }
     }
 
-    pub fn is_game_over(&self) -> bool {
+    pub fn game_is_over(&self) -> bool {
         let alive_player_count = self.players.iter().map(|x| i8::from(x.is_alive())).reduce(|x, y| x + y).unwrap();
         alive_player_count == 1
     }
@@ -276,7 +276,7 @@ impl Table {
     /// update all 5 table cards,
     pub fn deal(&mut self) {
         // If the game is over do not do anything
-        if self.is_game_over() {
+        if self.game_is_over() {
             return;
         }
         // Increment the hand number

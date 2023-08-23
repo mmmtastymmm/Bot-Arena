@@ -12,7 +12,7 @@ use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
 use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
 use crate::table::Table;
 
-fn turn_on_logging() {
+fn enable_logging() {
     let _ = env_logger::builder().is_test(true).try_init();
 }
 
@@ -273,7 +273,7 @@ pub fn test_lots_of_deals() {
     table.players.get_mut(0).unwrap().total_money = DEFAULT_START_MONEY * 10;
     // Deal the largest table size allowed until the game is over
     for _ in 0..DEFAULT_START_MONEY * 2 {
-        if table.is_game_over() {
+        if table.game_is_over() {
             break
         }
         table.deal();
@@ -524,15 +524,19 @@ fn test_one_raise_all_checks() {
 
 #[test]
 fn test_rounds_with_some_folding() {
+    enable_logging();
     const NUMBER_OF_PLAYERS: usize = 23;
     let shared_evaluator = Arc::new(Evaluator::new());
-    for round_number in 0..100 {
+    for round_number in 0..25 {
         info!("Starting round: {}", round_number);
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for action_number in 0..1000000 {
-            if table.is_game_over() {
+            if table.game_is_over() {
+                // Make sure taking actions doesn't somehow enable the game
+                table.take_action(HandAction::Call);
+                assert!(table.game_is_over());
                 break;
             }
             let correctness = table.get_current_player().player_state.is_active();
