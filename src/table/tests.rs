@@ -534,6 +534,9 @@ fn test_rounds_with_some_folding() {
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for action_number in 0..1000000 {
             if table.game_is_over() {
+                // Make sure dealing also doesn't enable the game
+                table.deal();
+                assert!(table.game_is_over());
                 // Make sure taking actions doesn't somehow enable the game
                 table.take_action(HandAction::Call);
                 assert!(table.game_is_over());

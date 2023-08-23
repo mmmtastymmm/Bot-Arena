@@ -250,11 +250,6 @@ impl Table {
         result_string
     }
 
-    /// Gets the current turn information
-    pub fn get_current_turn_information(&mut self) -> JsonValue {
-        self.get_state_string_for_player(self.players.get(self.current_player_index).unwrap().get_id())
-    }
-
     /// Cleans all the cards from the table
     pub fn clean_table(&mut self) {
         self.flop = None;
@@ -336,19 +331,11 @@ impl Table {
             }
         }
         if !self.get_current_player().is_alive() {
-            let alive_count = self.players.iter().map(|x| x.is_alive()).map(|x, | match x {
-                true => { 1 }
-                false => { 0 }
-            }).reduce(|x, y| x + y).unwrap();
-            panic!("Current player not alive after update! There were {} players alive", alive_count)
+            panic!("Current player not alive after update!")
         }
         match self.get_current_player().player_state {
             PlayerState::Folded => {
-                let active_count = self.players.iter().enumerate().map(|(i, x)| (i, x.player_state)).map(|(i, x)| match x {
-                    PlayerState::Folded => { "".to_string() }
-                    PlayerState::Active(_) => { i.to_string() + ", " }
-                }).reduce(|x, y| x + &y).unwrap();
-                panic!("Current player not active after update, there were {} active players", active_count)
+                panic!("Current player not active after update")
             }
             PlayerState::Active(_) => {}
         }
