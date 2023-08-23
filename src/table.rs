@@ -1101,7 +1101,7 @@ mod tests {
             let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
             assert_eq!(table.table_state, PreFlop);
             assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
-            for action_number in 0..1000000 {
+            for _ in 0..1000000 {
                 if table.is_game_over() {
                     // Make sure dealing also doesn't enable the game
                     table.deal();
