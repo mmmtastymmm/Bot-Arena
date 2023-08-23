@@ -1111,11 +1111,7 @@ mod tests {
                     assert!(table.is_game_over());
                     break;
                 }
-                let correctness = table.get_current_player().player_state.is_active();
-                if !correctness {
-                    warn!("Not correct on action number: {}", action_number);
-                }
-                assert!(correctness);
+                assert!(table.get_current_player().player_state.is_active());
                 let mut rng = thread_rng();
                 let action_int = rng.gen_range(0..4);
                 match action_int {
