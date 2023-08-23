@@ -473,7 +473,7 @@ impl Table {
                 // Sort by the smallest bet to the largest bet
                 list_of_players.sort_by(Table::compare_players_by_bet_amount);
                 // filter out any folded players just in case
-                let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| (*x).player_state.is_active()).collect();
+                let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| x.player_state.is_active()).collect();
                 let mut player_size = list_of_players.len() as i32;
                 let bet_amounts = Table::get_bet_increases_amount(&list_of_players);
                 for (i, bet_amount) in bet_amounts.iter().enumerate() {
