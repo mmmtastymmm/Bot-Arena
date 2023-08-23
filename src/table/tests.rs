@@ -366,22 +366,22 @@ fn test_players_all_checks() {
     let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
     table.deal();
     assert_eq!(table.table_state, PreFlop);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Check);
     }
     assert_eq!(table.table_state, Flop);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Check);
     }
     assert_eq!(table.table_state, Turn);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Check);
     }
     assert_eq!(table.table_state, River);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..(NUMBER_OF_PLAYERS - 1) {
         table.take_action(HandAction::Check);
     }
@@ -394,22 +394,22 @@ fn test_players_calling() {
     let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
     table.deal();
     assert_eq!(table.table_state, PreFlop);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Call);
     }
     assert_eq!(table.table_state, Flop);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Call);
     }
     assert_eq!(table.table_state, Turn);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Call);
     }
     assert_eq!(table.table_state, River);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..(NUMBER_OF_PLAYERS - 1) {
         table.take_action(HandAction::Call);
     }
@@ -424,7 +424,7 @@ fn test_everyone_all_in() {
     table.players.get_mut(1).unwrap().total_money = DEFAULT_START_MONEY / 2;
     table.take_action(HandAction::Check);
     table.take_action(HandAction::Raise(DEFAULT_START_MONEY / 2 + 1));
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..NUMBER_OF_PLAYERS - 2 {
         table.take_action(HandAction::Call);
     }
@@ -439,7 +439,7 @@ fn test_players_raising_and_calling() {
     let shared_evaluator = Arc::new(Evaluator::new());
     let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
     assert_eq!(table.table_state, PreFlop);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     // Everyone raises by one
     for i in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Raise(1));
@@ -453,7 +453,7 @@ fn test_players_raising_and_calling() {
     }
     assert_eq!(table.table_state, Flop);
     // Just one person raises and everyone else calls
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     table.take_action(HandAction::Raise(1));
     for _ in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Call);
@@ -465,7 +465,7 @@ fn test_players_raising_and_calling() {
         table.take_action(HandAction::Raise(1));
     }
     assert_eq!(table.get_largest_active_bet(), 2 + 2 * NUMBER_OF_PLAYERS as i32);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..NUMBER_OF_PLAYERS {
         table.take_action(HandAction::Call);
     }
@@ -475,7 +475,7 @@ fn test_players_raising_and_calling() {
         table.take_action(HandAction::Raise(3));
     }
     assert_eq!(table.get_largest_active_bet(), 2 + 5 * NUMBER_OF_PLAYERS as i32);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     for _ in 0..(NUMBER_OF_PLAYERS - 1) {
         table.take_action(HandAction::Call);
     }
@@ -487,7 +487,7 @@ fn test_players_raising_over_pot_limit() {
     let shared_evaluator = Arc::new(Evaluator::new());
     let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
     assert_eq!(table.table_state, PreFlop);
-    assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     let mut correct_largest_bet = 1;
     // Everyone raises by one
     for _ in 0..NUMBER_OF_PLAYERS {
@@ -508,7 +508,7 @@ fn test_one_raise_all_checks() {
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
         table.take_action(HandAction::Raise(raise_amount));
         assert_eq!(table.table_state, PreFlop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS - 1 {
             table.take_action(HandAction::Check);
         }
@@ -530,7 +530,7 @@ fn test_rounds_with_some_folding() {
         info!("Starting round: {}", round_number);
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
         assert_eq!(table.table_state, PreFlop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for action_number in 0..1000000 {
             if table.is_game_over() {
                 break;

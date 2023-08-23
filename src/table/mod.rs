@@ -173,15 +173,15 @@ impl Table {
         } else {
             panic!("Tried to take an action on an inactive player");
         }
-        // If there is only 1 alive player evaluate the winner
-        if self.get_alive_player_count() == 1 {
+        // If there is only 1 active player evaluate the winner
+        if self.get_active_player_count() == 1 {
             self.resolve_hand();
             return;
-        } else if self.get_alive_player_count() == 0 {
-            panic!("Somehow all players are dead, which is a programming error")
+        } else if self.get_active_player_count() == 0 {
+            panic!("Somehow all players are inactive, which is a programming error")
         }
-        // The round of betting is over
-        if self.is_betting_over() {
+        // If the betting is over update the state
+        while self.is_betting_over() && !self.is_game_over() {
             // The showdown is occurring, pick the winner
             if self.table_state == River {
                 self.resolve_hand();
@@ -189,14 +189,15 @@ impl Table {
             }
             // Move to the next betting stage
             self.table_state.next_stage();
-            // Reset the turn to the next person alive past the deal index
+            // Reset the current player to the next person past the current dealer index
             self.current_player_index = self.dealer_button_index;
-            self.update_current_player_index_to_next_active();
             // set everyone to not have a turn yet
             for player in &mut self.players {
                 player.has_had_turn_this_round = false;
             }
         }
+        // The resolving didn't occur, update to the next player
+        self.update_current_player_index_to_next_active();
     }
 
     fn take_provided_action(&mut self, hand_action: HandAction, active_state: ActiveState) {
@@ -228,8 +229,6 @@ impl Table {
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
             }
         }
-        // Update to point at the next player
-        self.update_current_player_index_to_next_active();
     }
 
     pub fn get_pot_size(&self) -> i32 {
@@ -321,7 +320,7 @@ impl Table {
 
     fn update_current_player_index_to_next_active(&mut self) {
         for _ in 0..self.players.len() {
-            // Set the next active player to the next index, looping if too large
+            // Set the next active player to the next index, resetting back down if out of bounds
             self.current_player_index += 1;
             if self.current_player_index >= self.players.len() {
                 self.current_player_index -= self.players.len();
@@ -344,10 +343,15 @@ impl Table {
             panic!("Current player not alive after update! There were {} players alive", alive_count)
         }
         match self.get_current_player().player_state {
-            PlayerState::Folded => { panic!("Current player not active after update!") }
+            PlayerState::Folded => {
+                let active_count = self.players.iter().enumerate().map(|(i, x)| (i, x.player_state)).map(|(i, x)| match x {
+                    PlayerState::Folded => { "".to_string() }
+                    PlayerState::Active(_) => { i.to_string() + ", " }
+                }).reduce(|x, y| x + &y).unwrap();
+                panic!("Current player not active after update, there were {} active players", active_count)
+            }
             PlayerState::Active(_) => {}
         }
-
     }
 
     /// Deals cards for the flop, turn, and river
@@ -426,7 +430,7 @@ impl Table {
         }
         ).reduce(|x, y| x && y).unwrap()
     }
-    fn get_alive_player_count(&self) -> usize {
+    fn get_active_player_count(&self) -> usize {
         self
             .players
             .iter()
@@ -470,7 +474,7 @@ impl Table {
     /// Picks winner(s), gives out winnings, and deals a new hand
     fn resolve_hand(&mut self) {
         // This is the everyone but one person has folded case, give that person the winnings
-        if self.get_alive_player_count() == 1 {
+        if self.get_active_player_count() == 1 {
             self.players.iter_mut().find(|x| match x.player_state {
                 PlayerState::Folded => { false }
                 PlayerState::Active(_) => { true }
