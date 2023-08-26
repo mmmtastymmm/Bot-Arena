@@ -232,17 +232,27 @@ impl Table {
         self.player_bets.iter().sum::<i32>()
     }
 
+    fn get_player_result_string(player: &Player, rank: &usize) -> String {
+        let death_round = {
+            match player.death_hand_number {
+                None => { "None".to_string() }
+                Some(a) => { a.to_string() }
+            }
+        };
+        format!("Rank:{rank:>3}, Death Round:,{death_round:>5}, Player: {player}\n")
+    }
+
     pub fn get_results(&self) -> String {
         let mut players_copy = self.players.clone();
         players_copy.sort_by(|a, b| b.cmp(a));
         let mut rank = 1;
-        let mut result_string = format!("Results:\nRank: {}, Player: {}\n", rank, players_copy.get(0).unwrap());
+        let mut result_string = Table::get_player_result_string(&players_copy[0], &rank);
         for (i, player) in players_copy.iter().skip(1).enumerate() {
             // The players didn't tie, so increase the rank
             if player != players_copy.get(i).unwrap() {
                 rank = i + 2;
             }
-            result_string += &format!("Rank: {rank}, Player: {player}\n");
+            result_string += &Table::get_player_result_string(player, &rank);
         }
         result_string
     }
@@ -913,7 +923,7 @@ mod tests {
         let lines = results.split('\n');
         // Skip the header, skip the empty string at the end, make sure everyone is in first place
         for line in lines.skip(1).take(NUMBER_OF_PLAYERS) {
-            assert!(line.contains("Rank: 1"))
+            assert!(line.contains("Rank:  1"))
         }
     }
 
