@@ -920,9 +920,9 @@ mod tests {
         // Get results for for a starting table, which should be all tied
         let results = table.get_results();
         // Split the lines
-        let lines = results.split('\n');
-        // Skip the header, skip the empty string at the end, make sure everyone is in first place
-        for line in lines.skip(1).take(NUMBER_OF_PLAYERS) {
+        let lines: Vec<_> = results.split('\n').collect();
+        // Skip the empty string at the end, but make sure everyone is in first place
+        for line in lines.into_iter().take(NUMBER_OF_PLAYERS) {
             assert!(line.contains("Rank:  1"))
         }
     }
