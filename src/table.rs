@@ -688,7 +688,7 @@ mod tests {
     fn check_all_players_inactive_breaks_update() {
         let mut table = deal_test_cards();
         for player in &mut table.players {
-            player.fold();
+            player.player_state = PlayerState::Folded;
         }
         table.update_current_player_index_to_next_active();
     }
