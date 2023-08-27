@@ -174,8 +174,6 @@ impl Table {
         if self.get_active_player_count() == 1 {
             self.resolve_hand();
             return;
-        } else if self.get_active_player_count() == 0 {
-            panic!("Somehow all players are inactive, which is a programming error")
         }
         // If the betting is over update the state
         while self.is_betting_over() && !self.is_game_over() {
