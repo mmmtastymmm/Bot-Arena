@@ -675,10 +675,20 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn check_all_players_dead() {
+    fn check_all_players_dead_breaks_update() {
         let mut table = deal_test_cards();
-        for play in &mut table.players {
-            play.death_hand_number = Some(1);
+        for player in &mut table.players {
+            player.death_hand_number = Some(1);
+        }
+        table.update_current_player_index_to_next_active();
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_all_players_inactive_breaks_update() {
+        let mut table = deal_test_cards();
+        for player in &mut table.players {
+            player.fold();
         }
         table.update_current_player_index_to_next_active();
     }
