@@ -694,6 +694,16 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn check_all_players_inactive_breaks_take_action() {
+        let mut table = deal_test_cards();
+        for player in &mut table.players {
+            player.player_state = PlayerState::Folded;
+        }
+        table.take_action(HandAction::Check);
+    }
+
+    #[test]
     pub fn test_side_pot() {
         let mut table = deal_test_cards_tied_best_side_pot();
         table.current_player_index = 0;
