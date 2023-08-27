@@ -674,6 +674,16 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn check_all_players_dead() {
+        let mut table = deal_test_cards();
+        for play in &mut table.players {
+            play.death_hand_number = Some(1);
+        }
+        table.update_current_player_index_to_next_active();
+    }
+
+    #[test]
     pub fn test_side_pot() {
         let mut table = deal_test_cards_tied_best_side_pot();
         table.current_player_index = 0;
