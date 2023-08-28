@@ -323,7 +323,7 @@ impl Table {
             // Set the next active player to the next index, resetting back down if out of bounds
             self.current_player_index += 1;
             if self.current_player_index >= self.players.len() {
-                self.current_player_index -= self.players.len();
+                self.current_player_index = 0;
             }
             // An all in player is no longer can take actions so skip them as well
             if self.get_current_player().total_money == 0 {
