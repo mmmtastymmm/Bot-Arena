@@ -1314,7 +1314,7 @@ mod tests {
                 active.current_bet = i as i32;
             }
         }
-        let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
+        let right_indexes = [4_usize, 5, 0, 1, 2, 3];
         table.players.sort_by(Table::compare_players_by_bet_amount);
         for (i, player) in table.players.iter().enumerate() {
             assert_eq!(right_indexes[i], player.get_id() as usize)
@@ -1330,7 +1330,7 @@ mod tests {
             }
         }
         table.players.reverse();
-        let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
+        let right_indexes = [4_usize, 5, 0, 1, 2, 3];
         table.players.sort_by(Table::compare_players_by_bet_amount);
         for (i, player) in table.players.iter().enumerate() {
             assert_eq!(right_indexes[i], player.get_id() as usize)
