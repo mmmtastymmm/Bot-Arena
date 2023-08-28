@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
 
-use json::{JsonValue, object};
+use json::{object, JsonValue};
 use poker::Card;
 
 use crate::player_components::PlayerState::{Active, Folded};
@@ -41,7 +41,9 @@ impl PlayerState {
     /// Gets the json version of a player state as a string
     pub fn as_json(&self) -> JsonValue {
         match self {
-            Folded => { object!(state_type: "folded", details: object! ()) }
+            Folded => {
+                object!(state_type: "folded", details: object! ())
+            }
             Active(a) => {
                 object!(state_type: "active", details: object!(hand: format!("{} {}", a.hand[0], a.hand[1]), bet: a.current_bet))
             }
@@ -51,7 +53,9 @@ impl PlayerState {
     /// Gets the json version of the player without revealing cards
     pub fn as_json_no_secret_data(&self) -> JsonValue {
         match self {
-            Folded => { object!(state_type: "folded", details: object! ()) }
+            Folded => {
+                object!(state_type: "folded", details: object! ())
+            }
             Active(a) => {
                 object!(state_type: "active", details: object!(bet: a.current_bet))
             }
@@ -62,8 +66,8 @@ impl PlayerState {
 impl PlayerState {
     pub fn is_active(&self) -> bool {
         match self {
-            Folded => { false }
-            Active(_) => { true }
+            Folded => false,
+            Active(_) => true,
         }
     }
 }
@@ -71,10 +75,7 @@ impl PlayerState {
 impl fmt::Display for Player {
     /// Gets the json version of the player
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f,
-               "{}",
-               self.as_json()
-        )
+        write!(f, "{}", self.as_json())
     }
 }
 
@@ -105,19 +106,30 @@ impl Ord for Player {
             return Ordering::Less;
         }
         // Both players are dead, prefer which round died on (money left doesn't matter now)
-        self.death_hand_number.unwrap().cmp(&other.death_hand_number.unwrap())
+        self.death_hand_number
+            .unwrap()
+            .cmp(&other.death_hand_number.unwrap())
     }
 }
 
 impl Player {
     /// Generates a new player with the given id
     pub fn new(id: i8) -> Self {
-        Player { player_state: Folded, total_money: DEFAULT_START_MONEY, death_hand_number: None, id, has_had_turn_this_round: false }
+        Player {
+            player_state: Folded,
+            total_money: DEFAULT_START_MONEY,
+            death_hand_number: None,
+            id,
+            has_had_turn_this_round: false,
+        }
     }
 
     /// Given the player new cards and ensures they're in an active state
     pub fn deal(&mut self, cards: [Card; 2]) {
-        self.player_state = Active(ActiveState { hand: cards, current_bet: 0 });
+        self.player_state = Active(ActiveState {
+            hand: cards,
+            current_bet: 0,
+        });
         self.has_had_turn_this_round = false;
     }
 
@@ -133,10 +145,7 @@ impl Player {
 
     /// Returns true if the player is still in the game, false if the player can no longer bet.
     pub fn is_alive(self) -> bool {
-        match self.death_hand_number {
-            None => { true }
-            Some(_) => { false }
-        }
+        self.death_hand_number.is_none()
     }
 
     /// Gets the players id
@@ -182,14 +191,17 @@ mod tests {
     use rand::seq::SliceRandom;
     use rand::thread_rng;
 
-    use crate::player_components::{ActiveState, DEFAULT_START_MONEY, Player, PlayerState};
+    use crate::player_components::{ActiveState, Player, PlayerState, DEFAULT_START_MONEY};
 
     #[test]
     fn test_player_deal() {
         const BET_AMOUNT: i32 = DEFAULT_START_MONEY / 2;
         let mut player = Player::new(0);
         assert_eq!(player.total_money, DEFAULT_START_MONEY);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         if let PlayerState::Active(a) = &player.player_state {
             // Check there is no bet yet
             assert_eq!(a.current_bet, 0);
@@ -203,7 +215,9 @@ mod tests {
         player.fold();
         match player.player_state {
             PlayerState::Folded => {}
-            _ => { panic!("Didn't go back to folded after a fold") }
+            _ => {
+                panic!("Didn't go back to folded after a fold")
+            }
         }
         // Check they lost their money
         assert_eq!(DEFAULT_START_MONEY - BET_AMOUNT, player.total_money)
@@ -213,7 +227,10 @@ mod tests {
     fn test_player_dead() {
         let mut player = Player::new(0);
         assert_eq!(player.total_money, DEFAULT_START_MONEY);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         if let PlayerState::Active(a) = &mut player.player_state {
             // Check there is no bet yet
             assert_eq!(a.current_bet, 0);
@@ -235,7 +252,10 @@ mod tests {
     #[should_panic]
     fn fold_twice() {
         let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         player.fold();
         player.fold();
     }
@@ -243,7 +263,10 @@ mod tests {
     #[test]
     fn bet_check_normal() {
         let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         const BET_AMOUNT: i32 = 20;
         assert_eq!(player.bet(BET_AMOUNT), BET_AMOUNT);
         assert_eq!(player.bet(BET_AMOUNT), BET_AMOUNT);
@@ -258,10 +281,16 @@ mod tests {
     #[test]
     fn bet_all_in() {
         let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         assert_eq!(player.bet(DEFAULT_START_MONEY + 3), DEFAULT_START_MONEY);
         let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         assert_eq!(player.bet(DEFAULT_START_MONEY), DEFAULT_START_MONEY);
         assert_eq!(player.bet(DEFAULT_START_MONEY), 0);
         if let PlayerState::Active(a) = player.player_state {
@@ -274,7 +303,10 @@ mod tests {
     #[test]
     fn bet_all_in_1_bet() {
         let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         assert_eq!(player.bet(DEFAULT_START_MONEY), DEFAULT_START_MONEY);
         if let PlayerState::Active(a) = player.player_state {
             assert_eq!(a.current_bet, DEFAULT_START_MONEY);
@@ -292,14 +324,23 @@ mod tests {
 
     #[test]
     fn test_player_state_string_active() {
-        let state = PlayerState::Active(ActiveState { hand: [Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)], current_bet: 30 });
+        let state = PlayerState::Active(ActiveState {
+            hand: [
+                Card::new(Rank::Ace, Suit::Clubs),
+                Card::new(Rank::Ace, Suit::Hearts),
+            ],
+            current_bet: 30,
+        });
         let string_version = state.to_string();
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":30}}").unwrap())
+            json::parse(
+                "{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":30}}"
+            )
+            .unwrap()
+        )
     }
-
 
     #[test]
     fn test_player_state_string_folded() {
@@ -308,13 +349,17 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"state_type\":\"folded\",\"details\":{}}").unwrap())
+            json::parse("{\"state_type\":\"folded\",\"details\":{}}").unwrap()
+        )
     }
 
     #[test]
     fn test_player_string() {
         let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         player.bet(DEFAULT_START_MONEY);
         let string_version = player.to_string();
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
@@ -333,7 +378,10 @@ mod tests {
     #[test]
     fn test_no_cards_in_secret() {
         let mut player = Player::new(0);
-        player.deal([Card::new(Rank::Ace, Suit::Clubs), Card::new(Rank::Ace, Suit::Hearts)]);
+        player.deal([
+            Card::new(Rank::Ace, Suit::Clubs),
+            Card::new(Rank::Ace, Suit::Hearts),
+        ]);
         assert_eq!(player.bet(DEFAULT_START_MONEY), DEFAULT_START_MONEY);
         let string_version = player.as_json_no_secret_data().to_string();
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
@@ -388,7 +436,10 @@ mod tests {
         // Get the secret json version
         let secret_player_json = player1.as_json_no_secret_data();
         // Make sure it is folded
-        assert_eq!(secret_player_json["player"]["player_state"]["state_type"], "folded");
+        assert_eq!(
+            secret_player_json["player"]["player_state"]["state_type"],
+            "folded"
+        );
         // Make sure there are no cards in the json
         let player_string = secret_player_json.to_string();
         let cards = Card::generate_deck();

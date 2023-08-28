@@ -10,6 +10,8 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(number_of_players: usize, evaluator: Arc<Evaluator>) -> Engine {
-        Engine { table: Table::new(number_of_players, evaluator) }
+        Engine {
+            table: Table::new(number_of_players, evaluator),
+        }
     }
 }
