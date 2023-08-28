@@ -108,20 +108,13 @@ mod tests {
             HandAction::Raise(50)
         );
 
-        assert!(
-            HandAction::parse_hand_action(r#"{"action":"invalid_action"}"#).is_err(),
-            "Expected error for invalid action"
-        );
+        assert!(HandAction::parse_hand_action(r#"{"action":"invalid_action"}"#).is_err());
 
         assert!(
             HandAction::parse_hand_action(r#"{"action":"raise","amount":"invalid_amount"}"#)
-                .is_err(),
-            "Expected error for invalid amount"
+                .is_err()
         );
 
-        assert!(
-            HandAction::parse_hand_action(r#"{"action":"raise","amount":"2e3"}"#).is_err(),
-            "Expected error for invalid amount"
-        );
+        assert!(HandAction::parse_hand_action(r#"{"action":"raise","amount":"2e3"}"#).is_err());
     }
 }
