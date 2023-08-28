@@ -541,8 +541,8 @@ impl Table {
                     let total = total;
                     let each_player_payout = total / player_size;
                     let remainder = total % player_size;
-                    for j in i..list_of_players.len() {
-                        let winning_id = list_of_players[j].get_id();
+                    for (j, player) in list_of_players.iter().enumerate().skip(i) {
+                        let winning_id = player.get_id();
                         let winner = self
                             .players
                             .iter_mut()
