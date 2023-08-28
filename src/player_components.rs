@@ -145,10 +145,7 @@ impl Player {
 
     /// Returns true if the player is still in the game, false if the player can no longer bet.
     pub fn is_alive(self) -> bool {
-        match self.death_hand_number {
-            None => true,
-            Some(_) => false,
-        }
+        self.death_hand_number.is_none()
     }
 
     /// Gets the players id
