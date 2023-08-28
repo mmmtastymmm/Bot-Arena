@@ -11,16 +11,15 @@ use table::Table;
 use crate::actions::HandAction;
 use crate::engine::Engine;
 
-mod player_components;
-mod table;
-mod engine;
 mod actions;
 mod bet_stage;
+mod engine;
+mod player_components;
+mod table;
 
 fn get_deck() -> Vec<Card> {
     Card::generate_deck().collect()
 }
-
 
 fn main() {
     println!("Hello, world!");
@@ -33,7 +32,10 @@ fn main() {
     table.deal();
     println!("This many players: {}", table.get_player_count());
     let engine = Engine::new(12, shared_evaluator);
-    println!("This is how many players are in the engine: {}", engine.table.get_player_count());
+    println!(
+        "This is how many players are in the engine: {}",
+        engine.table.get_player_count()
+    );
     for _ in 0..100 {
         table.take_action(HandAction::Check);
     }

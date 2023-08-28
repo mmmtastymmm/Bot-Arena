@@ -4,12 +4,12 @@ use std::fmt::Formatter;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use json::{JsonValue, object};
+use json::{object, JsonValue};
 use poker::{Card, Evaluator};
 
 use crate::actions::HandAction;
-use crate::bet_stage::BetStage::{Flop, PreFlop, River};
 use crate::bet_stage::BetStage;
+use crate::bet_stage::BetStage::{Flop, PreFlop, River};
 use crate::player_components::{ActiveState, Player, PlayerState};
 
 #[cfg(test)]
@@ -95,63 +95,60 @@ impl Table {
     /// Translates the flop into a human readable string
     pub fn get_flop_string(&self) -> String {
         match self.flop {
-            None => { "None".to_string() }
-            Some(cards) => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+            None => "None".to_string(),
+            Some(cards) => {
+                format!("{} {} {}", cards[0], cards[1], cards[2])
+            }
         }
     }
 
     /// Translates the flop into a human readable string
     pub fn get_flop_string_secret(&self) -> String {
         match self.flop {
-            None => { "None".to_string() }
-            Some(cards) => {
-                match &self.table_state {
-                    PreFlop => { "Hidden".to_string() }
-                    _ => { format!("{} {} {}", cards[0], cards[1], cards[2]) }
+            None => "None".to_string(),
+            Some(cards) => match &self.table_state {
+                PreFlop => "Hidden".to_string(),
+                _ => {
+                    format!("{} {} {}", cards[0], cards[1], cards[2])
                 }
-            }
+            },
         }
     }
-
 
     /// Translates the turn into a human readable string
     pub fn get_turn_string(&self) -> String {
         match self.turn {
-            None => { "None".to_string() }
-            Some(card) => { card.to_string() }
+            None => "None".to_string(),
+            Some(card) => card.to_string(),
         }
     }
 
     pub fn get_turn_string_secret(&self) -> String {
         match self.turn {
-            None => { "None".to_string() }
-            Some(card) => {
-                match &self.table_state {
-                    PreFlop => { "Hidden".to_string() }
-                    Flop => { "Hidden".to_string() }
-                    _ => { card.to_string() }
-                }
-            }
+            None => "None".to_string(),
+            Some(card) => match &self.table_state {
+                PreFlop => "Hidden".to_string(),
+                Flop => "Hidden".to_string(),
+                _ => card.to_string(),
+            },
         }
     }
 
     /// Translates the river into a human readable string
     pub fn get_river_string(&self) -> String {
         match self.river {
-            None => { "None".to_string() }
-            Some(card) => { card.to_string() }
+            None => "None".to_string(),
+            Some(card) => card.to_string(),
         }
     }
 
     pub fn get_river_string_secret(&self) -> String {
         match self.river {
-            None => { "None".to_string() }
-            Some(card) => {
-                match &self.table_state {
-                    River => { card.to_string() }
-                    _ => { "Hidden".to_string() }
-                }
-            }
+            None => "None".to_string(),
+            Some(card) => match &self.table_state {
+                River => card.to_string(),
+                _ => "Hidden".to_string(),
+            },
         }
     }
 
@@ -164,7 +161,10 @@ impl Table {
     pub fn take_action(&mut self, hand_action: HandAction) {
         // If the game is over print out a message, and do not take any actions
         if self.is_game_over() {
-            println!("Game is over! Results are included below:\n{}", self.get_results());
+            println!(
+                "Game is over! Results are included below:\n{}",
+                self.get_results()
+            );
             return;
         }
         // Make sure the current player is active, or panic and end the program
@@ -221,7 +221,8 @@ impl Table {
             }
             HandAction::Raise(raise_amount) => {
                 // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
-                let acceptable_bet = min(raise_amount + difference, self.get_pot_size() + difference);
+                let acceptable_bet =
+                    min(raise_amount + difference, self.get_pot_size() + difference);
                 let bet_amount = self.get_current_player().bet(acceptable_bet);
                 let index = self.get_current_player().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
@@ -236,8 +237,8 @@ impl Table {
     fn get_player_result_string(player: &Player, rank: &usize) -> String {
         let death_round = {
             match player.death_hand_number {
-                None => { "None".to_string() }
-                Some(a) => { a.to_string() }
+                None => "None".to_string(),
+                Some(a) => a.to_string(),
             }
         };
         format!("Rank:{rank:>3}, Death Round:,{death_round:>5}, Player: {player}\n")
@@ -269,7 +270,12 @@ impl Table {
     }
 
     pub fn is_game_over(&self) -> bool {
-        let alive_player_count = self.players.iter().map(|x| i8::from(x.is_alive())).reduce(|x, y| x + y).unwrap();
+        let alive_player_count = self
+            .players
+            .iter()
+            .map(|x| i8::from(x.is_alive()))
+            .reduce(|x, y| x + y)
+            .unwrap();
         alive_player_count == 1
     }
 
@@ -312,7 +318,12 @@ impl Table {
             if self.dealer_button_index + 1 >= self.get_player_count() {
                 self.dealer_button_index = 0;
             }
-            if self.players.get(self.dealer_button_index).unwrap().is_alive() {
+            if self
+                .players
+                .get(self.dealer_button_index)
+                .unwrap()
+                .is_alive()
+            {
                 break;
             }
         }
@@ -335,7 +346,9 @@ impl Table {
             // If the player is active while also not all in they are the next active player
             match self.get_current_player().player_state {
                 PlayerState::Folded => {}
-                PlayerState::Active(_) => { break; }
+                PlayerState::Active(_) => {
+                    break;
+                }
             }
         }
         if !self.get_current_player().is_alive() {
@@ -388,7 +401,17 @@ impl Table {
     }
 
     pub fn get_state_string_for_player(&self, id: i8) -> JsonValue {
-        let player_strings: Vec<_> = self.players.iter().map(|x| if x.get_id() == id { x.as_json() } else { x.as_json_no_secret_data() }).collect();
+        let player_strings: Vec<_> = self
+            .players
+            .iter()
+            .map(|x| {
+                if x.get_id() == id {
+                    x.as_json()
+                } else {
+                    x.as_json_no_secret_data()
+                }
+            })
+            .collect();
         object! {
             flop: self.get_flop_string_secret(),
             turn: self.get_turn_string_secret(),
@@ -404,34 +427,42 @@ impl Table {
         all_players_ready && all_players_equal_bet
     }
     fn get_largest_active_bet(&self) -> i32 {
-        self.players.iter().map(|x| match x.player_state {
-            PlayerState::Folded => { 0 }
-            PlayerState::Active(active_state) => { active_state.current_bet }
-        }).max().unwrap()
+        self.players
+            .iter()
+            .map(|x| match x.player_state {
+                PlayerState::Folded => 0,
+                PlayerState::Active(active_state) => active_state.current_bet,
+            })
+            .max()
+            .unwrap()
     }
     fn check_all_players_ready_for_next_round(&self) -> bool {
-        self.players.iter().map(|x| match x.player_state {
-            PlayerState::Folded => { true }
-            PlayerState::Active(_) => { x.has_had_turn_this_round || x.total_money == 0 }
-        }).reduce(|x, y| x && y).unwrap()
+        self.players
+            .iter()
+            .map(|x| match x.player_state {
+                PlayerState::Folded => true,
+                PlayerState::Active(_) => x.has_had_turn_this_round || x.total_money == 0,
+            })
+            .reduce(|x, y| x && y)
+            .unwrap()
     }
     fn check_all_active_players_same_bet(&self) -> bool {
         let max_bet = self.get_largest_active_bet();
-        self.players.iter().map(|x| match x.player_state {
-            PlayerState::Folded => { true }
-            PlayerState::Active(a) => {
-                x.total_money == 0 || a.current_bet == max_bet
-            }
-        }
-        ).reduce(|x, y| x && y).unwrap()
-    }
-    fn get_active_player_count(&self) -> usize {
-        self
-            .players
+        self.players
             .iter()
             .map(|x| match x.player_state {
-                PlayerState::Folded => { 0 }
-                PlayerState::Active(_) => { 1 }
+                PlayerState::Folded => true,
+                PlayerState::Active(a) => x.total_money == 0 || a.current_bet == max_bet,
+            })
+            .reduce(|x, y| x && y)
+            .unwrap()
+    }
+    fn get_active_player_count(&self) -> usize {
+        self.players
+            .iter()
+            .map(|x| match x.player_state {
+                PlayerState::Folded => 0,
+                PlayerState::Active(_) => 1,
             })
             .reduce(|x, y| x + y)
             .unwrap()
@@ -448,10 +479,15 @@ impl Table {
     ///
     fn get_bet_increases_amount(players: &[Player]) -> Vec<i32> {
         // Check that the slice is sorted
-        let bets: Vec<i32> = players.iter().map(|x| match x.player_state {
-            PlayerState::Folded => { panic!("Passed a folded player.") }
-            PlayerState::Active(a) => { a.current_bet }
-        }).collect();
+        let bets: Vec<i32> = players
+            .iter()
+            .map(|x| match x.player_state {
+                PlayerState::Folded => {
+                    panic!("Passed a folded player.")
+                }
+                PlayerState::Active(a) => a.current_bet,
+            })
+            .collect();
         if bets.windows(2).any(|w| w[0] > w[1]) {
             panic!("Players are not sorted by their bets.")
         }
@@ -470,10 +506,14 @@ impl Table {
     fn resolve_hand(&mut self) {
         // This is the everyone but one person has folded case, give that person the winnings
         if self.get_active_player_count() == 1 {
-            self.players.iter_mut().find(|x| match x.player_state {
-                PlayerState::Folded => { false }
-                PlayerState::Active(_) => { true }
-            }).unwrap().total_money += self.get_pot_size();
+            self.players
+                .iter_mut()
+                .find(|x| match x.player_state {
+                    PlayerState::Folded => false,
+                    PlayerState::Active(_) => true,
+                })
+                .unwrap()
+                .total_money += self.get_pot_size();
         } else {
             // Otherwise we need to give out winnings based on hand strength
             let sorted_players = self.get_hand_result();
@@ -481,7 +521,10 @@ impl Table {
                 // Sort by the smallest bet to the largest bet
                 list_of_players.sort_by(Table::compare_players_by_bet_amount);
                 // filter out any folded players just in case
-                let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| x.player_state.is_active()).collect();
+                let list_of_players: Vec<Player> = list_of_players
+                    .into_iter()
+                    .filter(|x| x.player_state.is_active())
+                    .collect();
                 let mut player_size = list_of_players.len() as i32;
                 let bet_amounts = Table::get_bet_increases_amount(&list_of_players);
                 for (i, bet_amount) in bet_amounts.iter().enumerate() {
@@ -500,7 +543,11 @@ impl Table {
                     let remainder = total % player_size;
                     for j in i..list_of_players.len() {
                         let winning_id = list_of_players[j].get_id();
-                        let winner = self.players.iter_mut().find(|x| x.get_id() == winning_id).unwrap();
+                        let winner = self
+                            .players
+                            .iter_mut()
+                            .find(|x| x.get_id() == winning_id)
+                            .unwrap();
                         winner.total_money += each_player_payout;
                         if (j as i32) < remainder {
                             winner.total_money += 1;
@@ -516,10 +563,12 @@ impl Table {
     fn compare_players_by_bet_amount(player1: &Player, player2: &Player) -> Ordering {
         let player_states = (player1.player_state, player2.player_state);
         match player_states {
-            (PlayerState::Folded, PlayerState::Folded) => { player1.get_id().cmp(&player2.get_id()) }
-            (PlayerState::Active(_), PlayerState::Folded) => { Ordering::Greater }
-            (PlayerState::Folded, PlayerState::Active(_)) => { Ordering::Less }
-            (PlayerState::Active(one), PlayerState::Active(two)) => { one.current_bet.cmp(&two.current_bet) }
+            (PlayerState::Folded, PlayerState::Folded) => player1.get_id().cmp(&player2.get_id()),
+            (PlayerState::Active(_), PlayerState::Folded) => Ordering::Greater,
+            (PlayerState::Folded, PlayerState::Active(_)) => Ordering::Less,
+            (PlayerState::Active(one), PlayerState::Active(two)) => {
+                one.current_bet.cmp(&two.current_bet)
+            }
         }
     }
 
@@ -527,7 +576,12 @@ impl Table {
         self.players.get_mut(self.current_player_index).unwrap()
     }
 
-    pub fn compare_players(&self, shared_cards: &[Card], player1: &Player, player2: &Player) -> Ordering {
+    pub fn compare_players(
+        &self,
+        shared_cards: &[Card],
+        player1: &Player,
+        player2: &Player,
+    ) -> Ordering {
         if !player1.player_state.is_active() && !player2.player_state.is_active() {
             return Ordering::Equal;
         } else if !player1.player_state.is_active() {
@@ -546,27 +600,41 @@ impl Table {
             b_set.extend(b.hand.iter());
         }
 
-        let a = self.evaluator.evaluate(a_set).expect("Couldn't evaluate hand 1");
-        let b = self.evaluator.evaluate(b_set).expect("Couldn't evaluate hand 2");
+        let a = self
+            .evaluator
+            .evaluate(a_set)
+            .expect("Couldn't evaluate hand 1");
+        let b = self
+            .evaluator
+            .evaluate(b_set)
+            .expect("Couldn't evaluate hand 2");
         b.cmp(&a)
     }
 
     pub fn sort_by_hands(&self, total_hand: &[Card], alive_players: &mut [Player]) {
-        alive_players.sort_by(|player1, player2| {
-            self.compare_players(total_hand, player1, player2)
-        });
+        alive_players
+            .sort_by(|player1, player2| self.compare_players(total_hand, player1, player2));
     }
 
     pub fn get_hand_result(&self) -> Vec<Vec<Player>> {
         let mut players_copy = self.players.clone();
 
-        let total_hand = vec![*self.flop.unwrap().get(0).unwrap(), *self.flop.unwrap().get(1).unwrap(), *self.flop.unwrap().get(2).unwrap(), self.turn.unwrap(), self.river.unwrap()];
+        let total_hand = vec![
+            *self.flop.unwrap().get(0).unwrap(),
+            *self.flop.unwrap().get(1).unwrap(),
+            *self.flop.unwrap().get(2).unwrap(),
+            self.turn.unwrap(),
+            self.river.unwrap(),
+        ];
         self.sort_by_hands(&total_hand, &mut players_copy);
         let mut rankings = Vec::new();
         rankings.push(Vec::new());
         rankings[0].push(players_copy[0]);
         for curr_player in players_copy.iter().skip(1) {
-            if self.compare_players(&total_hand, curr_player, &rankings[rankings.len() - 1][0]).is_gt() {
+            if self
+                .compare_players(&total_hand, curr_player, &rankings[rankings.len() - 1][0])
+                .is_gt()
+            {
                 rankings.push(Vec::new());
             }
             let rankings_size = rankings.len();

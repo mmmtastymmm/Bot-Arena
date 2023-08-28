@@ -11,14 +11,19 @@ pub enum BetStage {
 impl BetStage {
     pub fn next_stage(&mut self) {
         match self {
-            PreFlop => { *self = Flop; }
-            Flop => { *self = Turn; }
-            Turn => { *self = River }
-            River => { *self = PreFlop; }
+            PreFlop => {
+                *self = Flop;
+            }
+            Flop => {
+                *self = Turn;
+            }
+            Turn => *self = River,
+            River => {
+                *self = PreFlop;
+            }
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
