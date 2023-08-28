@@ -164,19 +164,19 @@ impl Table {
             println!("Game is over! Results are included below:\n{}", self.get_results());
             return;
         }
-        // Make sure the player is active, or increment and go to the next player
+        // Make sure the current player is active, or panic and end the program
         if let PlayerState::Active(active) = self.get_current_player().player_state {
             self.take_provided_action(hand_action, active);
         } else {
-            panic!("Tried to take an action on a dead player");
+            panic!("Tried to take an action on an inactive player");
         }
-        // If there is only 1 alive player evaluate the winner
-        if self.get_alive_player_count() == 1 {
+        // If there is only 1 active player evaluate the winner
+        if self.get_active_player_count() == 1 {
             self.resolve_hand();
             return;
         }
-        // The round of betting is over
-        if self.is_betting_over() {
+        // If the betting is over update the state
+        while self.is_betting_over() && !self.is_game_over() {
             // The showdown is occurring, pick the winner
             if self.table_state == River {
                 self.resolve_hand();
@@ -184,14 +184,15 @@ impl Table {
             }
             // Move to the next betting stage
             self.table_state.next_stage();
-            // Reset the turn to the next person alive past the deal index
+            // Reset the current player to the next person past the current dealer index
             self.current_player_index = self.dealer_button_index;
-            self.update_current_player_index_to_next_active();
             // set everyone to not have a turn yet
             for player in &mut self.players {
                 player.has_had_turn_this_round = false;
             }
         }
+        // The resolving didn't occur, update to the next player
+        self.update_current_player_index_to_next_active();
     }
 
     fn take_provided_action(&mut self, hand_action: HandAction, active_state: ActiveState) {
@@ -223,32 +224,35 @@ impl Table {
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
             }
         }
-        // Update to point at the next player
-        self.update_current_player_index_to_next_active();
     }
 
     pub fn get_pot_size(&self) -> i32 {
         self.player_bets.iter().sum::<i32>()
     }
 
+    fn get_player_result_string(player: &Player, rank: &usize) -> String {
+        let death_round = {
+            match player.death_hand_number {
+                None => { "None".to_string() }
+                Some(a) => { a.to_string() }
+            }
+        };
+        format!("Rank:{rank:>3}, Death Round:,{death_round:>5}, Player: {player}\n")
+    }
+
     pub fn get_results(&self) -> String {
         let mut players_copy = self.players.clone();
         players_copy.sort_by(|a, b| b.cmp(a));
         let mut rank = 1;
-        let mut result_string = format!("Results:\nRank: {}, Player: {}\n", rank, players_copy.get(0).unwrap());
+        let mut result_string = Table::get_player_result_string(&players_copy[0], &rank);
         for (i, player) in players_copy.iter().skip(1).enumerate() {
             // The players didn't tie, so increase the rank
             if player != players_copy.get(i).unwrap() {
                 rank = i + 2;
             }
-            result_string += &format!("Rank: {rank}, Player: {player}\n");
+            result_string += &Table::get_player_result_string(player, &rank);
         }
         result_string
-    }
-
-    /// Gets the current turn information
-    pub fn get_current_turn_information(&mut self) -> JsonValue {
-        self.get_state_string_for_player(self.players.get(self.current_player_index).unwrap().get_id())
     }
 
     /// Cleans all the cards from the table
@@ -316,7 +320,7 @@ impl Table {
 
     fn update_current_player_index_to_next_active(&mut self) {
         for _ in 0..self.players.len() {
-            // Set the next active player to the next index, looping if too large
+            // Set the next active player to the next index, resetting back down if out of bounds
             self.current_player_index += 1;
             if self.current_player_index >= self.players.len() {
                 self.current_player_index = 0;
@@ -326,10 +330,19 @@ impl Table {
                 continue;
             }
             // If the player is active while also not all in they are the next active player
-            match self.players.get(self.current_player_index).unwrap().player_state {
+            match self.get_current_player().player_state {
                 PlayerState::Folded => {}
                 PlayerState::Active(_) => { break; }
             }
+        }
+        if !self.get_current_player().is_alive() {
+            panic!("Current player not alive after update!")
+        }
+        match self.get_current_player().player_state {
+            PlayerState::Folded => {
+                panic!("Current player not active after update")
+            }
+            PlayerState::Active(_) => {}
         }
     }
 
@@ -409,7 +422,7 @@ impl Table {
         }
         ).reduce(|x, y| x && y).unwrap()
     }
-    fn get_alive_player_count(&self) -> usize {
+    fn get_active_player_count(&self) -> usize {
         self
             .players
             .iter()
@@ -453,7 +466,7 @@ impl Table {
     /// Picks winner(s), gives out winnings, and deals a new hand
     fn resolve_hand(&mut self) {
         // This is the everyone but one person has folded case, give that person the winnings
-        if self.get_alive_player_count() == 1 {
+        if self.get_active_player_count() == 1 {
             self.players.iter_mut().find(|x| match x.player_state {
                 PlayerState::Folded => { false }
                 PlayerState::Active(_) => { true }
@@ -465,7 +478,7 @@ impl Table {
                 // Sort by the smallest bet to the largest bet
                 list_of_players.sort_by(Table::compare_players_by_bet_amount);
                 // filter out any folded players just in case
-                let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| (*x).player_state.is_active()).collect();
+                let list_of_players: Vec<Player> = list_of_players.into_iter().filter(|x| x.player_state.is_active()).collect();
                 let mut player_size = list_of_players.len() as i32;
                 let bet_amounts = Table::get_bet_increases_amount(&list_of_players);
                 for (i, bet_amount) in bet_amounts.iter().enumerate() {
@@ -560,7 +573,6 @@ impl Table {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::cmp::min;
@@ -574,8 +586,12 @@ mod tests {
 
     use crate::actions::HandAction;
     use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-    use crate::player_components::{ActiveState, DEFAULT_START_MONEY, PlayerState};
+    use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
     use crate::table::Table;
+
+    fn enable_logging() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
 
     fn deal_test_cards() -> Table {
         let shared_evaluator = Arc::new(Evaluator::new());
@@ -653,6 +669,36 @@ mod tests {
         let pot_size = table.get_pot_size();
         let table_sum = player_amount + pot_size;
         assert_eq!(table_sum, table.players.len() as i32 * DEFAULT_START_MONEY);
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_all_players_dead_breaks_update() {
+        let mut table = deal_test_cards();
+        for player in &mut table.players {
+            player.death_hand_number = Some(1);
+        }
+        table.update_current_player_index_to_next_active();
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_all_players_inactive_breaks_update() {
+        let mut table = deal_test_cards();
+        for player in &mut table.players {
+            player.player_state = PlayerState::Folded;
+        }
+        table.update_current_player_index_to_next_active();
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_all_players_inactive_breaks_take_action() {
+        let mut table = deal_test_cards();
+        for player in &mut table.players {
+            player.player_state = PlayerState::Folded;
+        }
+        table.take_action(HandAction::Check);
     }
 
     #[test]
@@ -830,10 +876,13 @@ mod tests {
         let shared_evaluator = Arc::new(Evaluator::new());
         const PLAYER_SIZE: usize = 23;
         let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
-        // Add a player that will die sooner
-        table.players.get_mut(0).unwrap().total_money = 100;
-        // Deal the largest table size allowed
+        // Add a player that will die later, so as to be seen as an alive winner
+        table.players.get_mut(0).unwrap().total_money = DEFAULT_START_MONEY * 10;
+        // Deal the largest table size allowed until the game is over
         for _ in 0..DEFAULT_START_MONEY * 2 {
+            if table.is_game_over() {
+                break;
+            }
             table.deal();
         }
     }
@@ -899,10 +948,10 @@ mod tests {
         // Get results for for a starting table, which should be all tied
         let results = table.get_results();
         // Split the lines
-        let lines = results.split('\n');
-        // Skip the header, skip the empty string at the end, make sure everyone is in first place
-        for line in lines.skip(1).take(NUMBER_OF_PLAYERS) {
-            assert!(line.contains("Rank: 1"))
+        let lines: Vec<_> = results.split('\n').collect();
+        // Skip the empty string at the end, but make sure everyone is in first place
+        for line in lines.into_iter().take(NUMBER_OF_PLAYERS) {
+            assert!(line.contains("Rank:  1"))
         }
     }
 
@@ -924,22 +973,22 @@ mod tests {
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
         table.deal();
         assert_eq!(table.table_state, PreFlop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Check);
         }
         assert_eq!(table.table_state, Flop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Check);
         }
         assert_eq!(table.table_state, Turn);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Check);
         }
         assert_eq!(table.table_state, River);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Check);
         }
@@ -952,22 +1001,22 @@ mod tests {
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
         table.deal();
         assert_eq!(table.table_state, PreFlop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Call);
         }
         assert_eq!(table.table_state, Flop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Call);
         }
         assert_eq!(table.table_state, Turn);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Call);
         }
         assert_eq!(table.table_state, River);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Call);
         }
@@ -982,7 +1031,7 @@ mod tests {
         table.players.get_mut(1).unwrap().total_money = DEFAULT_START_MONEY / 2;
         table.take_action(HandAction::Check);
         table.take_action(HandAction::Raise(DEFAULT_START_MONEY / 2 + 1));
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS - 2 {
             table.take_action(HandAction::Call);
         }
@@ -997,7 +1046,7 @@ mod tests {
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
         assert_eq!(table.table_state, PreFlop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         // Everyone raises by one
         for i in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Raise(1));
@@ -1011,7 +1060,7 @@ mod tests {
         }
         assert_eq!(table.table_state, Flop);
         // Just one person raises and everyone else calls
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         table.take_action(HandAction::Raise(1));
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Call);
@@ -1023,7 +1072,7 @@ mod tests {
             table.take_action(HandAction::Raise(1));
         }
         assert_eq!(table.get_largest_active_bet(), 2 + 2 * NUMBER_OF_PLAYERS as i32);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..NUMBER_OF_PLAYERS {
             table.take_action(HandAction::Call);
         }
@@ -1033,7 +1082,7 @@ mod tests {
             table.take_action(HandAction::Raise(3));
         }
         assert_eq!(table.get_largest_active_bet(), 2 + 5 * NUMBER_OF_PLAYERS as i32);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..(NUMBER_OF_PLAYERS - 1) {
             table.take_action(HandAction::Call);
         }
@@ -1045,7 +1094,7 @@ mod tests {
         let shared_evaluator = Arc::new(Evaluator::new());
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
         assert_eq!(table.table_state, PreFlop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         let mut correct_largest_bet = 1;
         // Everyone raises by one
         for _ in 0..NUMBER_OF_PLAYERS {
@@ -1066,7 +1115,7 @@ mod tests {
             let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
             table.take_action(HandAction::Raise(raise_amount));
             assert_eq!(table.table_state, PreFlop);
-            assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
+            assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
             for _ in 0..NUMBER_OF_PLAYERS - 1 {
                 table.take_action(HandAction::Check);
             }
@@ -1082,24 +1131,33 @@ mod tests {
 
     #[test]
     fn test_rounds_with_some_folding() {
+        enable_logging();
         const NUMBER_OF_PLAYERS: usize = 23;
         let shared_evaluator = Arc::new(Evaluator::new());
-        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
-        assert_eq!(table.table_state, PreFlop);
-        assert_eq!(table.get_alive_player_count(), NUMBER_OF_PLAYERS);
-        for _ in 0..100000 {
-            if table.is_game_over() {
-                break;
-            }
-
-            assert!(table.get_current_player().player_state.is_active());
-            let mut rng = thread_rng();
-            let action_int = rng.gen_range(0..4);
-            match action_int {
-                0 => { table.take_action(HandAction::Raise(1)) }
-                1 => { table.take_action(HandAction::Check) }
-                2 => { table.take_action(HandAction::Call) }
-                _ => { table.take_action(HandAction::Fold) }
+        for round_number in 0..25 {
+            info!("Starting round: {}", round_number);
+            let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
+            assert_eq!(table.table_state, PreFlop);
+            assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
+            for _ in 0..1000000 {
+                if table.is_game_over() {
+                    // Make sure dealing also doesn't enable the game
+                    table.deal();
+                    assert!(table.is_game_over());
+                    // Make sure taking actions doesn't somehow enable the game
+                    table.take_action(HandAction::Call);
+                    assert!(table.is_game_over());
+                    break;
+                }
+                assert!(table.get_current_player().player_state.is_active());
+                let mut rng = thread_rng();
+                let action_int = rng.gen_range(0..4);
+                match action_int {
+                    0 => { table.take_action(HandAction::Raise(1)) }
+                    1 => { table.take_action(HandAction::Check) }
+                    2 => { table.take_action(HandAction::Call) }
+                    _ => { table.take_action(HandAction::Fold) }
+                }
             }
         }
     }
@@ -1256,7 +1314,7 @@ mod tests {
                 active.current_bet = i as i32;
             }
         }
-        let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
+        let right_indexes = [4_usize, 5, 0, 1, 2, 3];
         table.players.sort_by(Table::compare_players_by_bet_amount);
         for (i, player) in table.players.iter().enumerate() {
             assert_eq!(right_indexes[i], player.get_id() as usize)
@@ -1272,7 +1330,7 @@ mod tests {
             }
         }
         table.players.reverse();
-        let right_indexes = vec![4_usize, 5, 0, 1, 2, 3];
+        let right_indexes = [4_usize, 5, 0, 1, 2, 3];
         table.players.sort_by(Table::compare_players_by_bet_amount);
         for (i, player) in table.players.iter().enumerate() {
             assert_eq!(right_indexes[i], player.get_id() as usize)
