@@ -202,7 +202,7 @@ mod tests {
             Card::new(Rank::Ace, Suit::Clubs),
             Card::new(Rank::Ace, Suit::Hearts),
         ]);
-        if let PlayerState::Active(a) = player.player_state {
+        if let PlayerState::Active(a) = &player.player_state {
             // Check there is no bet yet
             assert_eq!(a.current_bet, 0);
         } else {

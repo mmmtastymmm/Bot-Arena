@@ -2,12 +2,40 @@ use std::fmt;
 use std::fmt::Formatter;
 
 use json::object;
+use serde::de::Error;
+use serde::Deserialize;
+use serde_json::Value;
 
+#[derive(Deserialize, Eq, PartialEq, Debug)]
 pub enum HandAction {
     Fold,
     Check,
     Call,
     Raise(i32),
+}
+
+impl HandAction {
+    fn parse_hand_action(json: &str) -> serde_json::Result<HandAction> {
+        let v: Value = serde_json::from_str(json)?;
+
+        match v["action"]
+            .as_str()
+            .unwrap_or("bad")
+            .to_lowercase()
+            .as_str()
+        {
+            "fold" => Ok(HandAction::Fold),
+            "call" => Ok(HandAction::Call),
+            "check" => Ok(HandAction::Check),
+            "raise" => {
+                let amount = v["amount"]
+                    .as_i64()
+                    .ok_or(serde_json::Error::custom("Invalid amount"))?;
+                Ok(HandAction::Raise(amount as i32))
+            }
+            _ => Err(serde_json::Error::custom("Invalid action")),
+        }
+    }
 }
 
 impl fmt::Display for HandAction {
@@ -56,5 +84,37 @@ mod tests {
             HandAction::Check.to_string(),
             object! {action: "check"}.to_string()
         );
+    }
+
+    #[test]
+    fn test_parse_hand_action() {
+        assert_eq!(
+            HandAction::parse_hand_action(r#"{"action":"fold"}"#).unwrap(),
+            HandAction::Fold
+        );
+
+        assert_eq!(
+            HandAction::parse_hand_action(r#"{"action":"call"}"#).unwrap(),
+            HandAction::Call
+        );
+
+        assert_eq!(
+            HandAction::parse_hand_action(r#"{"action":"check"}"#).unwrap(),
+            HandAction::Check
+        );
+
+        assert_eq!(
+            HandAction::parse_hand_action(r#"{"action":"raise","amount":50}"#).unwrap(),
+            HandAction::Raise(50)
+        );
+
+        assert!(HandAction::parse_hand_action(r#"{"action":"invalid_action"}"#).is_err());
+
+        assert!(
+            HandAction::parse_hand_action(r#"{"action":"raise","amount":"invalid_amount"}"#)
+                .is_err()
+        );
+
+        assert!(HandAction::parse_hand_action(r#"{"action":"raise","amount":"2e3"}"#).is_err());
     }
 }
