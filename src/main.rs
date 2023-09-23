@@ -24,7 +24,7 @@ fn get_deck() -> Vec<Card> {
 }
 
 fn main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
     info!("Hello, world!");
     let deck = get_deck();
     info!("Have this many cards: {}", deck.len());
