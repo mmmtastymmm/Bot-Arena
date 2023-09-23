@@ -14,6 +14,7 @@ use crate::engine::Engine;
 mod actions;
 mod bet_stage;
 mod engine;
+mod log_setup;
 mod player_components;
 mod table;
 
@@ -22,17 +23,18 @@ fn get_deck() -> Vec<Card> {
 }
 
 fn main() {
-    println!("Hello, world!");
+    log_setup::enable_logging();
+    info!("Hello, world!");
     let deck = get_deck();
-    println!("Have this many cards: {}", deck.len());
+    info!("Have this many cards: {}", deck.len());
 
     let shared_evaluator = Arc::new(Evaluator::new());
 
     let mut table = Table::new(12, shared_evaluator.clone());
     table.deal();
-    println!("This many players: {}", table.get_player_count());
+    info!("This many players: {}", table.get_player_count());
     let engine = Engine::new(12, shared_evaluator);
-    println!(
+    info!(
         "This is how many players are in the engine: {}",
         engine.table.get_player_count()
     );

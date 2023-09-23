@@ -9,12 +9,9 @@ use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
+use crate::log_setup::enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
 use crate::table::Table;
-
-fn enable_logging() {
-    let _ = env_logger::builder().is_test(true).try_init();
-}
 
 fn deal_test_cards() -> Table {
     let shared_evaluator = Arc::new(Evaluator::new());
@@ -628,11 +625,11 @@ fn test_one_raise_all_checks() {
 
 #[test]
 fn test_rounds_with_some_folding() {
-    enable_logging();
+    enable_logging_in_test();
     const NUMBER_OF_PLAYERS: usize = 23;
     let shared_evaluator = Arc::new(Evaluator::new());
     for round_number in 0..25 {
-        info!("Starting round: {}", round_number);
+        info!("Starting round: {round_number}");
         let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
@@ -656,6 +653,7 @@ fn test_rounds_with_some_folding() {
                 _ => table.take_action(HandAction::Fold),
             }
         }
+        info!("Following round passed: {round_number}")
     }
 }
 
