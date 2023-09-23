@@ -4,6 +4,7 @@ extern crate log;
 
 use std::sync::Arc;
 
+use env_logger::Env;
 use poker::{Card, Evaluator};
 
 use table::Table;
@@ -23,7 +24,7 @@ fn get_deck() -> Vec<Card> {
 }
 
 fn main() {
-    log_setup::enable_logging();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     info!("Hello, world!");
     let deck = get_deck();
     info!("Have this many cards: {}", deck.len());
