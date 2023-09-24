@@ -143,8 +143,18 @@ impl Table {
         self.player_bets = vec![0; self.players.len()];
         // Save this round as the previous round
         self.previous_round_actions = self.round_actions.clone();
+        // log the results of the previous round
+        debug!("{}", self.generate_last_round_strings());
         // Reset actions taken to just the deal action
         self.round_actions = vec![TableAction::DealCards(self.hand_number)];
+    }
+
+    fn generate_last_round_strings(&self) -> String {
+        let mut round_string = String::from("");
+        for round in &self.previous_round_actions {
+            round_string += format!("{round}\n").as_str();
+        }
+        round_string
     }
 
     /// Translates the flop into a human readable string

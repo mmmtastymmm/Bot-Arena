@@ -212,10 +212,6 @@ pub fn test_side_pot() {
     table.take_action(HandAction::Raise(1));
     assert_eq!(3, table.current_player_index);
     table.take_action(HandAction::Call);
-    // assert_eq!(1, table.current_player_index);
-    // table.take_action(HandAction::Call);
-    // assert_eq!(2, table.current_player_index);
-    // table.take_action(HandAction::Call);
     for i in 2..4 {
         assert_eq!(table.table_state, Flop);
         assert_eq!(table.current_player_index, i);
@@ -373,6 +369,13 @@ pub fn test_two_side_pots_with_actions_checked() {
     assert_eq!(table.players[4].total_money, 503);
     // This one just loses 11
     assert_eq!(table.players[5].total_money, 489);
+    // Generate the latest round string and make sure some events occurred
+    let last_round = table.generate_last_round_strings();
+    assert!(last_round.contains("Table dealt round 1."));
+    assert!(last_round.contains("Table advanced to flop."));
+    assert!(last_round.contains("Table advanced to turn."));
+    assert!(last_round.contains("Table advanced to river."));
+    assert!(last_round.contains("Players hands had to be compared and are ranked as follows:"));
 }
 
 #[test]
