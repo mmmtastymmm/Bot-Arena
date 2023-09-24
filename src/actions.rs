@@ -80,6 +80,14 @@ mod tests {
     use crate::actions::HandAction;
 
     #[test]
+    pub fn test_simple_string() {
+        assert_eq!(HandAction::Raise(56).simple_string(), "Raise by 56");
+        assert_eq!(HandAction::Check.simple_string(), "Check");
+        assert_eq!(HandAction::Check.simple_string(), "Fold");
+        assert_eq!(HandAction::Check.simple_string(), "Call");
+    }
+
+    #[test]
     pub fn test_print() {
         assert_eq!(
             HandAction::Call.to_string(),
