@@ -6,7 +6,7 @@ use serde::de::Error;
 use serde::Deserialize;
 use serde_json::Value;
 
-#[derive(Deserialize, Eq, PartialEq, Debug)]
+#[derive(Deserialize, Eq, PartialEq, Debug, Copy, Clone)]
 pub enum HandAction {
     Fold,
     Check,

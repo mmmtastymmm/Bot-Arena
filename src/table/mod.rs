@@ -12,6 +12,7 @@ use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
 use crate::player_components::{ActiveState, Player, PlayerState};
 
+#[derive(Clone)]
 pub enum TableAction {
     TakePlayerAction(i8, HandAction),
     DealCards(i32),
@@ -77,8 +78,10 @@ pub struct Table {
     player_bets: Vec<i32>,
     /// How frequently (after "ante_round_increase" rounds) the ante should be increased
     ante_round_increase: i32,
-    /// A string
+    /// A vector of round actions
     round_actions: Vec<TableAction>,
+    /// A vector of previous round actions
+    previous_round_actions: Vec<TableAction>,
 }
 
 impl fmt::Display for Table {
@@ -122,6 +125,7 @@ impl Table {
             player_bets: vec![0; number_of_players],
             ante_round_increase: number_of_players as i32 * 2,
             round_actions: vec![],
+            previous_round_actions: vec![],
         };
         table.deal();
         table
@@ -133,6 +137,8 @@ impl Table {
         self.table_state = PreFlop;
         // Reset all player bets to zero
         self.player_bets = vec![0; self.players.len()];
+        // Save this round as the previous round
+        self.previous_round_actions = self.round_actions.clone();
         // Reset actions taken to just the deal action
         self.round_actions = vec![TableAction::DealCards(self.hand_number)];
     }
