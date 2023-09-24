@@ -11,7 +11,7 @@ use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
 use crate::log_setup::enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
-use crate::table::Table;
+use crate::table::{Table, TableAction};
 
 fn deal_test_cards() -> Table {
     let shared_evaluator = Arc::new(Evaluator::new());
@@ -139,6 +139,37 @@ pub fn check_table_has_right_amount(table: &Table) {
     let pot_size = table.get_pot_size();
     let table_sum = player_amount + pot_size;
     assert_eq!(table_sum, table.players.len() as i32 * DEFAULT_START_MONEY);
+}
+
+#[test]
+pub fn check_table_action_strings() {
+    assert_eq!(
+        format!("{}", TableAction::TakePlayerAction(3_i8, HandAction::Fold)),
+        "Player 3 took action Fold."
+    );
+    assert_eq!(
+        format!("{}", TableAction::DealCards(3)),
+        "Table dealt round 3."
+    );
+    assert_eq!(
+        format!("{}", TableAction::AdvanceToFlop),
+        "Table advanced to flop."
+    );
+    assert_eq!(
+        format!("{}", TableAction::AdvanceToTurn),
+        "Table advanced to turn."
+    );
+    assert_eq!(
+        format!("{}", TableAction::AdvanceToRiver),
+        "Table advanced to river."
+    );
+    assert_eq!(
+        format!(
+            "{}",
+            TableAction::EvaluateHand(String::from("Some reasons"))
+        ),
+        "Table evaluated hand with the following result: Some reasons"
+    );
 }
 
 #[test]

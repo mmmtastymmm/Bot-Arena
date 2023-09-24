@@ -26,7 +26,11 @@ impl fmt::Display for TableAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             TableAction::TakePlayerAction(player, hand_action) => {
-                write!(f, "Player {player} took action {hand_action}.")
+                write!(
+                    f,
+                    "Player {player} took action {}.",
+                    hand_action.simple_string()
+                )
             }
             TableAction::DealCards(round_number) => {
                 write!(f, "Table dealt round {round_number}.")

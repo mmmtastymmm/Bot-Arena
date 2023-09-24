@@ -60,6 +60,19 @@ impl fmt::Display for HandAction {
     }
 }
 
+impl HandAction {
+    pub fn simple_string(&self) -> String {
+        match self {
+            HandAction::Fold => String::from("Fold"),
+            HandAction::Check => String::from("Check"),
+            HandAction::Call => String::from("Call"),
+            HandAction::Raise(amount) => {
+                format!("Raise by {amount}")
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use json::object;
