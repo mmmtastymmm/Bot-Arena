@@ -83,8 +83,8 @@ mod tests {
     pub fn test_simple_string() {
         assert_eq!(HandAction::Raise(56).simple_string(), "Raise by 56");
         assert_eq!(HandAction::Check.simple_string(), "Check");
-        assert_eq!(HandAction::Check.simple_string(), "Fold");
-        assert_eq!(HandAction::Check.simple_string(), "Call");
+        assert_eq!(HandAction::Fold.simple_string(), "Fold");
+        assert_eq!(HandAction::Call.simple_string(), "Call");
     }
 
     #[test]
