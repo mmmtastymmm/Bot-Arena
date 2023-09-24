@@ -12,7 +12,7 @@ use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
 use crate::player_components::{ActiveState, Player, PlayerState};
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum TableAction {
     TakePlayerAction(i8, HandAction),
     DealCards(i32),

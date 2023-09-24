@@ -306,21 +306,63 @@ pub fn two_winners() {
 }
 
 #[test]
-pub fn test_two_side_pots() {
+pub fn test_two_side_pots_with_actions_checked() {
     let mut table = two_sets_of_ties();
     assert_eq!(table.get_current_player().get_id(), 1);
     table.take_action(HandAction::Check);
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::TakePlayerAction(1_i8, HandAction::Check)
+    );
     assert_eq!(table.get_current_player().get_id(), 2);
     table.take_action(HandAction::Raise(1));
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::TakePlayerAction(2_i8, HandAction::Raise(1))
+    );
     assert_eq!(table.get_current_player().get_id(), 3);
     table.take_action(HandAction::Call);
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::TakePlayerAction(3_i8, HandAction::Call)
+    );
     assert_eq!(table.get_current_player().get_id(), 4);
     table.take_action(HandAction::Raise(10));
+    // Note: betting 9 is going all in
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::TakePlayerAction(4_i8, HandAction::Raise(9))
+    );
     assert_eq!(table.get_current_player().get_id(), 5);
     table.take_action(HandAction::Call);
-    for _ in 0..6 {
+    // Now we are in the next stage
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::AdvanceToFlop
+    );
+    for _ in 0..2 {
         table.take_action(HandAction::Check);
     }
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::AdvanceToTurn
+    );
+    // Check we advance as the non-allin players check
+    for _ in 0..2 {
+        table.take_action(HandAction::Check);
+    }
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::AdvanceToRiver
+    );
+    for _ in 0..2 {
+        table.take_action(HandAction::Check);
+    }
+    //Now the table should have dealt again
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::DealCards(2)
+    );
     // First two tied for 6, and ante up for the next round so they're at 2
     assert_eq!(table.players[0].total_money, 2);
     assert_eq!(table.players[1].total_money, 2);
