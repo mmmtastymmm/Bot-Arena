@@ -5,19 +5,19 @@ pub struct Timer {
 }
 
 impl Timer {
-    // Creates a new timer and starts it.
+    /// Creates a new timer and starts it.
     pub fn new() -> Self {
         Timer {
             start_time: Instant::now(),
         }
     }
 
-    // Restarts the timer.
+    /// Restarts the timer.
     pub fn restart(&mut self) {
         self.start_time = Instant::now();
     }
 
-    // Returns the elapsed time since the timer was started (or restarted).
+    /// Returns the elapsed time since the timer was started (or restarted).
     pub fn elapsed(&self) -> Duration {
         Instant::now().duration_since(self.start_time)
     }
