@@ -34,7 +34,8 @@ mod test {
     fn test_timer() {
         // Make a timer and sleep for a duration
         let mut timer = Timer::new();
-        const FIRST_SLEEP_TIME: Duration = Duration::from_millis(2);
+        const NUMBER_OF_MILLISECONDS: u64 = 2;
+        const FIRST_SLEEP_TIME: Duration = Duration::from_millis(NUMBER_OF_MILLISECONDS);
         thread::sleep(FIRST_SLEEP_TIME);
         // Make sure we sleep for at least that long
         assert!(FIRST_SLEEP_TIME < timer.elapsed());
@@ -42,9 +43,8 @@ mod test {
         timer.restart();
         assert!(timer.elapsed() < FIRST_SLEEP_TIME);
         // Try the same test with a longer duration
-        const SECOND_SLEEP_TIME: Duration =
-            Duration::from_millis((FIRST_SLEEP_TIME.as_millis() * 2) as u64);
-        thread::sleep(SECOND_SLEEP_TIME);
-        assert!(timer.elapsed() > SECOND_SLEEP_TIME);
+        const LONGER_SLEEP_TIME: Duration = Duration::from_millis(NUMBER_OF_MILLISECONDS * 2);
+        thread::sleep(LONGER_SLEEP_TIME);
+        assert!(timer.elapsed() > LONGER_SLEEP_TIME);
     }
 }
