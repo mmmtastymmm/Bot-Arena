@@ -12,6 +12,48 @@ use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
 use crate::player_components::{ActiveState, Player, PlayerState};
 
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub enum TableAction {
+    TakePlayerAction(i8, HandAction),
+    DealCards(i32),
+    AdvanceToFlop,
+    AdvanceToTurn,
+    AdvanceToRiver,
+    EvaluateHand(String),
+}
+
+impl fmt::Display for TableAction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            TableAction::TakePlayerAction(player, hand_action) => {
+                write!(
+                    f,
+                    "Player {player} took action {}.",
+                    hand_action.simple_string()
+                )
+            }
+            TableAction::DealCards(round_number) => {
+                write!(f, "Table dealt round {round_number}.")
+            }
+            TableAction::AdvanceToFlop => {
+                write!(f, "Table advanced to flop.")
+            }
+            TableAction::AdvanceToTurn => {
+                write!(f, "Table advanced to turn.")
+            }
+            TableAction::AdvanceToRiver => {
+                write!(f, "Table advanced to river.")
+            }
+            TableAction::EvaluateHand(string) => {
+                write!(
+                    f,
+                    "Table evaluated hand with the following result: {string}"
+                )
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test;
 
@@ -40,6 +82,10 @@ pub struct Table {
     player_bets: Vec<i32>,
     /// How frequently (after "ante_round_increase" rounds) the ante should be increased
     ante_round_increase: i32,
+    /// A vector of round actions
+    round_actions: Vec<TableAction>,
+    /// A vector of previous round actions
+    previous_round_actions: Vec<TableAction>,
 }
 
 impl fmt::Display for Table {
@@ -82,6 +128,8 @@ impl Table {
             table_state: PreFlop,
             player_bets: vec![0; number_of_players],
             ante_round_increase: number_of_players as i32 * 2,
+            round_actions: vec![],
+            previous_round_actions: vec![],
         };
         table.deal();
         table
@@ -89,7 +137,24 @@ impl Table {
 
     /// Reset the table state to the starting round state
     fn reset_state_for_new_round(&mut self) {
-        self.table_state = PreFlop
+        // We will be in the pre flop stage
+        self.table_state = PreFlop;
+        // Reset all player bets to zero
+        self.player_bets = vec![0; self.players.len()];
+        // Save this round as the previous round
+        self.previous_round_actions = self.round_actions.clone();
+        // log the results of the previous round
+        debug!("{}", self.generate_last_round_strings());
+        // Reset actions taken to just the deal action
+        self.round_actions = vec![TableAction::DealCards(self.hand_number)];
+    }
+
+    fn generate_last_round_strings(&self) -> String {
+        let mut round_string = String::from("");
+        for round in &self.previous_round_actions {
+            round_string += format!("{round}\n").as_str();
+        }
+        round_string
     }
 
     /// Translates the flop into a human readable string
@@ -185,7 +250,12 @@ impl Table {
                 self.resolve_hand();
                 return;
             }
-            // Move to the next betting stage
+            // Move to the next betting stage (can't hit the river case here)
+            match self.table_state {
+                PreFlop => self.round_actions.push(TableAction::AdvanceToFlop),
+                Flop => self.round_actions.push(TableAction::AdvanceToTurn),
+                _ => self.round_actions.push(TableAction::AdvanceToRiver),
+            }
             self.table_state.next_stage();
             // Reset the current player to the next person past the current dealer index
             self.current_player_index = self.dealer_button_index;
@@ -205,19 +275,39 @@ impl Table {
         match hand_action {
             HandAction::Fold => {
                 self.get_current_player().fold();
+                let table_action = TableAction::TakePlayerAction(
+                    self.get_current_player().get_id(),
+                    HandAction::Fold,
+                );
+                self.round_actions.push(table_action);
             }
             HandAction::Check => {
                 // All in already, so stay all in
                 if difference == 0 {
                     self.get_current_player().bet(0);
+                    let table_action = TableAction::TakePlayerAction(
+                        self.get_current_player().get_id(),
+                        HandAction::Check,
+                    );
+                    self.round_actions.push(table_action);
                 } else {
                     self.get_current_player().fold();
+                    let table_action = TableAction::TakePlayerAction(
+                        self.get_current_player().get_id(),
+                        HandAction::Fold,
+                    );
+                    self.round_actions.push(table_action);
                 }
             }
             HandAction::Call => {
                 let bet_amount = self.get_current_player().bet(difference);
                 let index = self.get_current_player().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
+                let table_action = TableAction::TakePlayerAction(
+                    self.get_current_player().get_id(),
+                    HandAction::Call,
+                );
+                self.round_actions.push(table_action);
             }
             HandAction::Raise(raise_amount) => {
                 // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
@@ -226,6 +316,11 @@ impl Table {
                 let bet_amount = self.get_current_player().bet(acceptable_bet);
                 let index = self.get_current_player().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
+                let table_action = TableAction::TakePlayerAction(
+                    self.get_current_player().get_id(),
+                    HandAction::Raise(bet_amount),
+                );
+                self.round_actions.push(table_action);
             }
         }
     }
@@ -290,8 +385,6 @@ impl Table {
         }
         // Increment the hand number
         self.hand_number += 1;
-        // Reset all player bets to zero
-        self.player_bets = vec![0; self.players.len()];
         // Reset the state for a new round of betting
         self.reset_state_for_new_round();
         // Check all players for death
@@ -504,19 +597,45 @@ impl Table {
     }
     /// Picks winner(s), gives out winnings, and deals a new hand
     fn resolve_hand(&mut self) {
+        // Generate the result string
+        let mut result_string = String::from("The hand resolved to the following: ");
         // This is the everyone but one person has folded case, give that person the winnings
         if self.get_active_player_count() == 1 {
-            self.players
+            let pot_size = self.get_pot_size();
+            let winner = self
+                .players
                 .iter_mut()
                 .find(|x| match x.player_state {
                     PlayerState::Folded => false,
                     PlayerState::Active(_) => true,
                 })
-                .unwrap()
-                .total_money += self.get_pot_size();
+                .unwrap();
+            winner.total_money += pot_size;
+            result_string += format!(
+                "The following player won due to everyone else folding: {}",
+                winner.get_id()
+            )
+            .as_str();
         } else {
+            result_string += "Players hands had to be compared and are ranked as follows: \n";
             // Otherwise we need to give out winnings based on hand strength
             let sorted_players = self.get_hand_result();
+            // All player hands need to be shown so collect that information
+            for (index, list_of_players) in sorted_players.iter().enumerate() {
+                let rank = index + 1;
+                for player in list_of_players {
+                    if let PlayerState::Active(state) = player.player_state {
+                        result_string += format!(
+                            "Player {} ranked {} with hand {} {}\n",
+                            player.get_id(),
+                            rank,
+                            state.hand[0],
+                            state.hand[1]
+                        )
+                        .as_str();
+                    }
+                }
+            }
             for mut list_of_players in sorted_players {
                 // Sort by the smallest bet to the largest bet
                 list_of_players.sort_by(Table::compare_players_by_bet_amount);
@@ -557,6 +676,8 @@ impl Table {
                 }
             }
         }
+        self.round_actions
+            .push(TableAction::EvaluateHand(result_string));
         self.deal();
     }
 

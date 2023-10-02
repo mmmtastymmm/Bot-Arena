@@ -5,4 +5,5 @@
 For letting bots compete against each other.
 
 Coverage Sunburst Chart
+
 ![code](https://codecov.io/gh/mmmtastymmm/Bot-Arena/branch/main/graphs/sunburst.svg?token=R057I3M5PS)

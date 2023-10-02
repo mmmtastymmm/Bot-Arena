@@ -11,7 +11,7 @@ use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
 use crate::log_setup::enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
-use crate::table::Table;
+use crate::table::{Table, TableAction};
 
 fn deal_test_cards() -> Table {
     let shared_evaluator = Arc::new(Evaluator::new());
@@ -142,6 +142,37 @@ pub fn check_table_has_right_amount(table: &Table) {
 }
 
 #[test]
+pub fn check_table_action_strings() {
+    assert_eq!(
+        format!("{}", TableAction::TakePlayerAction(3_i8, HandAction::Fold)),
+        "Player 3 took action Fold."
+    );
+    assert_eq!(
+        format!("{}", TableAction::DealCards(3)),
+        "Table dealt round 3."
+    );
+    assert_eq!(
+        format!("{}", TableAction::AdvanceToFlop),
+        "Table advanced to flop."
+    );
+    assert_eq!(
+        format!("{}", TableAction::AdvanceToTurn),
+        "Table advanced to turn."
+    );
+    assert_eq!(
+        format!("{}", TableAction::AdvanceToRiver),
+        "Table advanced to river."
+    );
+    assert_eq!(
+        format!(
+            "{}",
+            TableAction::EvaluateHand(String::from("Some reasons"))
+        ),
+        "Table evaluated hand with the following result: Some reasons"
+    );
+}
+
+#[test]
 #[should_panic]
 fn check_all_players_dead_breaks_update() {
     let mut table = deal_test_cards();
@@ -181,10 +212,6 @@ pub fn test_side_pot() {
     table.take_action(HandAction::Raise(1));
     assert_eq!(3, table.current_player_index);
     table.take_action(HandAction::Call);
-    // assert_eq!(1, table.current_player_index);
-    // table.take_action(HandAction::Call);
-    // assert_eq!(2, table.current_player_index);
-    // table.take_action(HandAction::Call);
     for i in 2..4 {
         assert_eq!(table.table_state, Flop);
         assert_eq!(table.current_player_index, i);
@@ -275,21 +302,63 @@ pub fn two_winners() {
 }
 
 #[test]
-pub fn test_two_side_pots() {
+pub fn test_two_side_pots_with_actions_checked() {
     let mut table = two_sets_of_ties();
     assert_eq!(table.get_current_player().get_id(), 1);
     table.take_action(HandAction::Check);
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::TakePlayerAction(1_i8, HandAction::Check)
+    );
     assert_eq!(table.get_current_player().get_id(), 2);
     table.take_action(HandAction::Raise(1));
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::TakePlayerAction(2_i8, HandAction::Raise(1))
+    );
     assert_eq!(table.get_current_player().get_id(), 3);
     table.take_action(HandAction::Call);
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::TakePlayerAction(3_i8, HandAction::Call)
+    );
     assert_eq!(table.get_current_player().get_id(), 4);
     table.take_action(HandAction::Raise(10));
+    // Note: betting 9 is going all in
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::TakePlayerAction(4_i8, HandAction::Raise(9))
+    );
     assert_eq!(table.get_current_player().get_id(), 5);
     table.take_action(HandAction::Call);
-    for _ in 0..6 {
+    // Now we are in the next stage
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::AdvanceToFlop
+    );
+    for _ in 0..2 {
         table.take_action(HandAction::Check);
     }
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::AdvanceToTurn
+    );
+    // Check we advance as the non-allin players check
+    for _ in 0..2 {
+        table.take_action(HandAction::Check);
+    }
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::AdvanceToRiver
+    );
+    for _ in 0..2 {
+        table.take_action(HandAction::Check);
+    }
+    //Now the table should have dealt again
+    assert_eq!(
+        *table.round_actions.last().unwrap(),
+        TableAction::DealCards(2)
+    );
     // First two tied for 6, and ante up for the next round so they're at 2
     assert_eq!(table.players[0].total_money, 2);
     assert_eq!(table.players[1].total_money, 2);
@@ -300,6 +369,13 @@ pub fn test_two_side_pots() {
     assert_eq!(table.players[4].total_money, 503);
     // This one just loses 11
     assert_eq!(table.players[5].total_money, 489);
+    // Generate the latest round string and make sure some events occurred
+    let last_round = table.generate_last_round_strings();
+    assert!(last_round.contains("Table dealt round 1."));
+    assert!(last_round.contains("Table advanced to flop."));
+    assert!(last_round.contains("Table advanced to turn."));
+    assert!(last_round.contains("Table advanced to river."));
+    assert!(last_round.contains("Players hands had to be compared and are ranked as follows:"));
 }
 
 #[test]

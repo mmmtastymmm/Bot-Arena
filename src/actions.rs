@@ -6,7 +6,7 @@ use serde::de::Error;
 use serde::Deserialize;
 use serde_json::Value;
 
-#[derive(Deserialize, Eq, PartialEq, Debug)]
+#[derive(Deserialize, Eq, PartialEq, Debug, Copy, Clone)]
 pub enum HandAction {
     Fold,
     Check,
@@ -60,11 +60,32 @@ impl fmt::Display for HandAction {
     }
 }
 
+impl HandAction {
+    pub fn simple_string(&self) -> String {
+        match self {
+            HandAction::Fold => String::from("Fold"),
+            HandAction::Check => String::from("Check"),
+            HandAction::Call => String::from("Call"),
+            HandAction::Raise(amount) => {
+                format!("Raise by {amount}")
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use json::object;
 
     use crate::actions::HandAction;
+
+    #[test]
+    pub fn test_simple_string() {
+        assert_eq!(HandAction::Raise(56).simple_string(), "Raise by 56");
+        assert_eq!(HandAction::Check.simple_string(), "Check");
+        assert_eq!(HandAction::Fold.simple_string(), "Fold");
+        assert_eq!(HandAction::Call.simple_string(), "Call");
+    }
 
     #[test]
     pub fn test_print() {
