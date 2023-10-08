@@ -20,11 +20,6 @@ impl Server {
         let start_time = tokio::time::Instant::now();
 
         loop {
-            // Check if the time elapsed is more than the timeout, if so, break
-            if start_time.elapsed() > wait_duration {
-                break;
-            }
-
             // Calculate remaining time for the timeout
             let remaining_time = wait_duration.saturating_sub(start_time.elapsed());
 
@@ -34,6 +29,7 @@ impl Server {
                     connections.push(stream);
                     info!("There was a connection from: {socket_address}")
                 }
+                // The connection was bad
                 Ok(Err(e)) => {
                     warn!("There was an connection error: {e}")
                 }
