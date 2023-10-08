@@ -2,13 +2,16 @@ extern crate core;
 #[macro_use]
 extern crate log;
 
+use std::time::Duration;
+
 use env_logger::Env;
 use poker::Card;
 
 use table::Table;
 
-use crate::actions::HandAction;
+use crate::engine::Engine;
 use crate::globals::SHARED_EVALUATOR;
+use crate::server::Server;
 
 mod actions;
 mod bet_stage;
@@ -23,7 +26,8 @@ fn get_deck() -> Vec<Card> {
     Card::generate_deck().collect()
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
     info!("Hello, world!");
     let deck = get_deck();
@@ -32,14 +36,14 @@ fn main() {
     let mut table = Table::new(12, SHARED_EVALUATOR.clone());
     table.deal();
     info!("This many players: {}", table.get_player_count());
-    // let engine = Engine::new(12, SHARED_EVALUATOR.clone());
-    // info!(
-    //     "This is how many players are in the engine: {}",
-    //     engine.table.get_player_count()
-    // );
-    for _ in 0..100 {
-        table.take_action(HandAction::Check);
-    }
+
+    let engine =
+        Engine::new(Server::from_server_url("0.0.0.0:10100", Duration::from_millis(10)).await)
+            .await;
+    engine.unwrap_or_else(|error| {
+        println!("Couldn't init server with the following error: {}", error);
+        panic!("Couldn't init server.");
+    });
 }
 
 #[test]
@@ -53,6 +57,8 @@ fn check_deck_size() {
 }
 
 #[test]
-fn check_main() {
+#[should_panic]
+fn check_main_no_subs() {
+    // Since there are no subs this should panic
     main()
 }

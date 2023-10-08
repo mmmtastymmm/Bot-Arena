@@ -20,6 +20,8 @@ impl Engine {
 
         Ok(engine)
     }
+
+    pub async fn play_game(&mut self) {}
 }
 
 #[cfg(test)]
