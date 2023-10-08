@@ -1,3 +1,6 @@
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+use crate::actions::HandAction;
 use crate::globals::SHARED_EVALUATOR;
 use crate::server::Server;
 use crate::table::Table;
@@ -21,7 +24,57 @@ impl Engine {
         Ok(engine)
     }
 
-    pub async fn play_game(&mut self) {}
+    pub async fn play_game(&mut self) {
+        while !self.table.is_game_over() {
+            let input = self.get_client_input().await;
+            self.table.take_action(input);
+        }
+        println!("{}", self.table.get_results());
+    }
+
+    pub async fn get_client_input(&mut self) -> HandAction {
+        let current_index = self.table.get_current_player_index();
+        let connection = match self.server.connections.get_mut(current_index) {
+            Some(conn) => conn,
+            None => {
+                warn!("No connection found for index {current_index}. Will return fold.");
+                return HandAction::Fold;
+            }
+        };
+
+        let table_state_json = self.table.get_state_string_for_player(current_index as i8);
+        if (connection
+            .write(table_state_json.as_str().unwrap_or_default().as_ref())
+            .await)
+            .is_err()
+        {
+            warn!("Couldn't write to user at index {current_index}, will take a fold action.");
+            return HandAction::Fold;
+        }
+
+        let mut read_result = [0_u8; 2000];
+        match connection.read(&mut read_result).await {
+            Ok(bytes_read) => {
+                let action_string = String::from_utf8(read_result[0..bytes_read].to_vec());
+                match action_string {
+                    Ok(action_string) => {
+                        HandAction::parse_hand_action(action_string.as_str()).unwrap_or_else(|_| {
+                            warn!("Invalid hand action from client at {current_index}. Will return fold.");
+                            HandAction::Fold
+                        })
+                    }
+                    Err(_) => {
+                        warn!("Values sent from client at {current_index} were not UTF-8, could not parse string. Will return fold.");
+                        HandAction::Fold
+                    }
+                }
+            }
+            Err(error) => {
+                warn!("Couldn't read from the client at index {current_index} due to {error}, will return fold.");
+                HandAction::Fold
+            }
+        }
+    }
 }
 
 #[cfg(test)]
