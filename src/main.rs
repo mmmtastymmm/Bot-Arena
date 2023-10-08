@@ -2,6 +2,8 @@ extern crate core;
 #[macro_use]
 extern crate log;
 
+use std::future::Future;
+use std::process::exit;
 use std::time::Duration;
 
 use env_logger::Env;
@@ -28,6 +30,14 @@ fn get_deck() -> Vec<Card> {
 
 #[tokio::main]
 async fn main() {
+    let result = main_result().await;
+    match result {
+        Ok(_) => {}
+        Err(_) => exit(1),
+    }
+}
+
+async fn main_result() -> Result<(), String> {
     let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
     info!("Hello, world!");
     let deck = get_deck();
@@ -41,11 +51,13 @@ async fn main() {
         Server::from_server_url("0.0.0.0:10100", Duration::from_millis(10)).await,
         Duration::from_nanos(1),
     )
-    .await;
-    engine.unwrap_or_else(|error| {
-        error!("Couldn't init server with the following error: {}", error);
-        panic!("Couldn't init server.");
-    });
+    .await
+    .map_err(|error| {
+        let error_string = format!("Couldn't init server with the following error: {}", error);
+        error!("{error_string}");
+        error_string
+    })?;
+    Ok(())
 }
 
 #[test]
@@ -58,9 +70,9 @@ fn check_deck_size() {
     assert!(poker::Rank::Two <= example_rank);
 }
 
-#[test]
-#[should_panic]
-fn check_main_no_subs() {
-    // Since there are no subs this should panic
-    main()
+#[tokio::test]
+async fn check_main_no_subs() {
+    // Since there are no subs this should be an error
+    let main_result = main_result().await;
+    assert!(main_result.is_err());
 }
