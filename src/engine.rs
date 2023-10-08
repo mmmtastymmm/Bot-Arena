@@ -60,6 +60,7 @@ mod tests {
         let server_handle = tokio::spawn(async move {
             Engine::new(Server::from_tcp_listener(tcp_connection, server_wait_duration).await).await
         });
+        tokio::time::sleep(Duration::from_millis(10)).await;
         let number_of_connections = 3;
         for i in 0..number_of_connections {
             info!("Trying to connect on iteration {i}");
@@ -67,8 +68,15 @@ mod tests {
             assert!(stream.is_ok());
         }
         // Check to make sure the server was constructed correctly
-        let server = server_handle.await.unwrap();
+        let engine = server_handle.await.unwrap();
         // This should be an error as no one connected
-        assert!(server.is_ok());
+        assert!(engine.is_ok());
+        // Check to make sure the server subs match the number of players
+        let engine = engine.unwrap();
+        assert_eq!(
+            engine.server.connections.len(),
+            engine.table.get_player_count()
+        );
+        assert_eq!(engine.server.connections.len(), number_of_connections);
     }
 }
