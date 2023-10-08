@@ -6,14 +6,20 @@ use tokio::time::timeout;
 
 pub struct Server {
     pub connections: Vec<TcpStream>,
+    server_address: String,
 }
 
 impl Server {
     /// Listen for server connections for the wait duration, then return all connections form the time frame.
-    pub async fn from(server_url: &str, wait_duration: Duration) -> Server {
+    pub async fn from_server_url(server_url: &str, wait_duration: Duration) -> Server {
         let try_socket = TcpListener::bind(server_url).await;
         let listener = try_socket.expect("Failed to bind");
-        info!("Listening on: {}", server_url);
+        Server::from_tcp_listener(listener, wait_duration).await
+    }
+
+    pub async fn from_tcp_listener(listener: TcpListener, wait_duration: Duration) -> Server {
+        let server_address = format!("{:?}", listener.local_addr().unwrap());
+        info!("Listening on: {}", server_address);
         info!("Will try to listen for: {:?}", wait_duration);
         let mut connections = vec![];
 
@@ -27,7 +33,7 @@ impl Server {
                 // The connection was good
                 Ok(Ok((stream, socket_address))) => {
                     connections.push(stream);
-                    info!("There was a connection from: {socket_address}")
+                    info!("There was a connection from_server_url: {socket_address}")
                 }
                 // The connection was bad
                 Ok(Err(e)) => {
@@ -39,7 +45,15 @@ impl Server {
                 }
             }
         }
-        Server { connections }
+        Server {
+            connections,
+            server_address,
+        }
+    }
+
+    pub async fn get_random_tcp_listener() -> TcpListener {
+        let try_socket = TcpListener::bind("0.0.0.0:0").await;
+        try_socket.expect("Failed to bind")
     }
 }
 
@@ -63,7 +77,7 @@ mod tests {
 
         // Start the server in the background
         let server_handle = tokio::spawn(async move {
-            Server::from(
+            Server::from_server_url(
                 server_url.as_str(),
                 wait_duration + server_startup_wait_time,
             )
@@ -101,5 +115,12 @@ mod tests {
         let server = server_handle.await.unwrap();
 
         assert_eq!(server.connections.len(), number_of_connections as usize); // 3 connections should be accepted
+    }
+
+    #[tokio::test]
+    async fn test_random_tcp() {
+        // Make sure we have a real port
+        let tcp = Server::get_random_tcp_listener().await;
+        assert_ne!(tcp.local_addr().unwrap().port(), 0);
     }
 }

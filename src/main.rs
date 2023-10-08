@@ -8,7 +8,6 @@ use poker::Card;
 use table::Table;
 
 use crate::actions::HandAction;
-use crate::engine::Engine;
 use crate::globals::SHARED_EVALUATOR;
 
 mod actions;
@@ -33,11 +32,11 @@ fn main() {
     let mut table = Table::new(12, SHARED_EVALUATOR.clone());
     table.deal();
     info!("This many players: {}", table.get_player_count());
-    let engine = Engine::new(12, SHARED_EVALUATOR.clone());
-    info!(
-        "This is how many players are in the engine: {}",
-        engine.table.get_player_count()
-    );
+    // let engine = Engine::new(12, SHARED_EVALUATOR.clone());
+    // info!(
+    //     "This is how many players are in the engine: {}",
+    //     engine.table.get_player_count()
+    // );
     for _ in 0..100 {
         table.take_action(HandAction::Check);
     }
