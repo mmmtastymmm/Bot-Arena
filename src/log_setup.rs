@@ -1,4 +1,4 @@
-/// Allow log macros to be captured by the test that calls this function
+/// Allow log macros are captured and printed by the test if this is called.
 #[cfg(test)]
 pub fn enable_logging_in_test() {
     let _ = env_logger::builder()
