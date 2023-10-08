@@ -37,9 +37,11 @@ async fn main() {
     table.deal();
     info!("This many players: {}", table.get_player_count());
 
-    let engine =
-        Engine::new(Server::from_server_url("0.0.0.0:10100", Duration::from_millis(10)).await)
-            .await;
+    let engine = Engine::new(
+        Server::from_server_url("0.0.0.0:10100", Duration::from_millis(10)).await,
+        Duration::from_nanos(1),
+    )
+    .await;
     engine.unwrap_or_else(|error| {
         error!("Couldn't init server with the following error: {}", error);
         panic!("Couldn't init server.");

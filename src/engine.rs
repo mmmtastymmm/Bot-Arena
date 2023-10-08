@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::time::timeout;
 
 use crate::actions::HandAction;
 use crate::globals::SHARED_EVALUATOR;
@@ -8,10 +11,11 @@ use crate::table::Table;
 pub struct Engine {
     pub table: Table,
     pub server: Server,
+    pub read_timeout: Duration,
 }
 
 impl Engine {
-    pub async fn new(server: Server) -> Result<Engine, String> {
+    pub async fn new(server: Server, read_timeout: Duration) -> Result<Engine, String> {
         if server.connections.is_empty() {
             return Err("No connections established.".to_string());
         }
@@ -19,6 +23,7 @@ impl Engine {
         let engine = Engine {
             table: Table::new(server.connections.len(), SHARED_EVALUATOR.clone()),
             server,
+            read_timeout,
         };
 
         Ok(engine)
@@ -53,8 +58,10 @@ impl Engine {
         }
 
         let mut read_result = [0_u8; 2000];
-        match connection.read(&mut read_result).await {
-            Ok(bytes_read) => {
+        let read_future = connection.read(&mut read_result);
+
+        match timeout(self.read_timeout, read_future).await {
+            Ok(Ok(bytes_read)) => {
                 let action_string = String::from_utf8(read_result[0..bytes_read].to_vec());
                 match action_string {
                     Ok(action_string) => {
@@ -69,8 +76,14 @@ impl Engine {
                     }
                 }
             }
-            Err(error) => {
+            Ok(Err(error)) => {
                 warn!("Couldn't read from the client at index {current_index} due to {error}, will return fold.");
+                HandAction::Fold
+            }
+            Err(_) => {
+                warn!(
+                    "Timed out reading from the client at index {current_index}. Will return fold."
+                );
                 HandAction::Fold
             }
         }
@@ -94,9 +107,11 @@ mod tests {
         let tcp_connection = Server::get_random_tcp_listener().await;
 
         // Make an engine, but make sure no one ever connects.
-        let result =
-            Engine::new(Server::from_tcp_listener(tcp_connection, server_wait_duration).await)
-                .await;
+        let result = Engine::new(
+            Server::from_tcp_listener(tcp_connection, server_wait_duration).await,
+            Duration::from_nanos(1),
+        )
+        .await;
         // This should be an error as no one connected
         assert!(result.is_err());
     }
@@ -111,7 +126,11 @@ mod tests {
 
         // Start the engine in the background
         let server_handle = tokio::spawn(async move {
-            Engine::new(Server::from_tcp_listener(tcp_connection, server_wait_duration).await).await
+            Engine::new(
+                Server::from_tcp_listener(tcp_connection, server_wait_duration).await,
+                Duration::from_nanos(1),
+            )
+            .await
         });
         tokio::time::sleep(Duration::from_millis(10)).await;
         let number_of_connections = 3;
