@@ -19,7 +19,6 @@ mod log_setup;
 mod player_components;
 mod server;
 mod table;
-mod timer;
 
 fn get_deck() -> Vec<Card> {
     Card::generate_deck().collect()
