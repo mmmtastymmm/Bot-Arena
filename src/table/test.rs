@@ -1,21 +1,20 @@
 use std::cmp::min;
 use std::collections::HashSet;
-use std::sync::Arc;
 
-use poker::{Card, Evaluator};
+use poker::Card;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
+use crate::globals::SHARED_EVALUATOR;
 use crate::log_setup::enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
 use crate::table::{Table, TableAction};
 
 fn deal_test_cards() -> Table {
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(6, shared_evaluator);
+    let mut table = Table::new(6, SHARED_EVALUATOR.clone());
     // After the deal set the cards to known values
     table.flop = Some([
         Card::new(poker::Rank::Ten, poker::Suit::Spades),
@@ -79,8 +78,7 @@ fn deal_test_cards_tied_best() -> Table {
 }
 
 fn two_sets_of_ties() -> Table {
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(6, shared_evaluator);
+    let mut table = Table::new(6, SHARED_EVALUATOR.clone());
     // After the deal set the cards to known values
     table.flop = Some([
         Card::new(poker::Rank::Ten, poker::Suit::Spades),
@@ -381,9 +379,8 @@ pub fn test_two_side_pots_with_actions_checked() {
 #[test]
 pub fn test_deal_correct_size() {
     // Required for the table evaluator
-    let shared_evaluator = Arc::new(Evaluator::new());
     const PLAYER_SIZE: usize = 23;
-    let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
+    let mut table = Table::new(PLAYER_SIZE, SHARED_EVALUATOR.clone());
     // Deal the largest table size allowed
     table.deal();
     // Make read only now
@@ -418,9 +415,8 @@ pub fn test_deal_correct_size() {
 #[test]
 pub fn test_deal_with_dead_players() {
     // Required for the table evaluator
-    let shared_evaluator = Arc::new(Evaluator::new());
     const PLAYER_SIZE: usize = 23;
-    let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
+    let mut table = Table::new(PLAYER_SIZE, SHARED_EVALUATOR.clone());
     // Deal the largest table size allowed
     table.players.get_mut(0).unwrap().total_money = 0;
     table.deal();
@@ -437,9 +433,8 @@ pub fn test_deal_with_dead_players() {
 #[test]
 pub fn test_lots_of_deals() {
     // Required for the table evaluator
-    let shared_evaluator = Arc::new(Evaluator::new());
     const PLAYER_SIZE: usize = 23;
-    let mut table = Table::new(PLAYER_SIZE, shared_evaluator);
+    let mut table = Table::new(PLAYER_SIZE, SHARED_EVALUATOR.clone());
     // Add a player that will die later, so as to be seen as an alive winner
     table.players.get_mut(0).unwrap().total_money = DEFAULT_START_MONEY * 10;
     // Deal the largest table size allowed until the game is over
@@ -455,15 +450,13 @@ pub fn test_lots_of_deals() {
 #[should_panic]
 pub fn test_deal_too_many_players() {
     // Add to many players and expect a panic
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(24, shared_evaluator);
+    let mut table = Table::new(24, SHARED_EVALUATOR.clone());
     table.deal()
 }
 
 #[test]
 pub fn test_print() {
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(23, shared_evaluator);
+    let mut table = Table::new(23, SHARED_EVALUATOR.clone());
     table.deal();
     let string = table.to_string();
     assert!(string.contains("\"flop\":\"["));
@@ -478,8 +471,7 @@ pub fn test_print() {
 
 #[test]
 pub fn test_print_fold_and_active_players() {
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(23, shared_evaluator);
+    let mut table = Table::new(23, SHARED_EVALUATOR.clone());
     table.players.get_mut(0).unwrap().fold();
     let string = table.to_string();
     assert!(string.contains("\"flop\":\"["));
@@ -494,8 +486,7 @@ pub fn test_print_fold_and_active_players() {
 
 #[test]
 pub fn check_only_one_hand_returned_with_string() {
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(23, shared_evaluator);
+    let mut table = Table::new(23, SHARED_EVALUATOR.clone());
     table.deal();
     let json_string = table.get_state_string_for_player(0).to_string();
     // Three open brackets, one for the player list and 2 for each open card bracket.
@@ -505,8 +496,7 @@ pub fn check_only_one_hand_returned_with_string() {
 #[test]
 pub fn test_results_all_tied() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     table.deal();
     // Get results for for a starting table, which should be all tied
     let results = table.get_results();
@@ -521,8 +511,7 @@ pub fn test_results_all_tied() {
 #[test]
 fn test_clean() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     table.deal();
     assert!(table.flop.is_some());
     table.clean_table();
@@ -532,8 +521,7 @@ fn test_clean() {
 #[test]
 fn test_players_all_checks() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     table.deal();
     assert_eq!(table.table_state, PreFlop);
     assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
@@ -560,8 +548,7 @@ fn test_players_all_checks() {
 #[test]
 fn test_players_calling() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     table.deal();
     assert_eq!(table.table_state, PreFlop);
     assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
@@ -588,8 +575,7 @@ fn test_players_calling() {
 #[test]
 fn test_everyone_all_in() {
     const NUMBER_OF_PLAYERS: usize = 3;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     assert_eq!(table.table_state, PreFlop);
     table.players.get_mut(1).unwrap().total_money = DEFAULT_START_MONEY / 2;
     table.take_action(HandAction::Check);
@@ -606,8 +592,7 @@ fn test_everyone_all_in() {
 #[test]
 fn test_players_raising_and_calling() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     assert_eq!(table.table_state, PreFlop);
     assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     // Everyone raises by one
@@ -660,8 +645,7 @@ fn test_players_raising_and_calling() {
 #[test]
 fn test_players_raising_over_pot_limit() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     assert_eq!(table.table_state, PreFlop);
     assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     let mut correct_largest_bet = 1;
@@ -680,8 +664,7 @@ fn test_one_raise_all_checks() {
     const NUMBER_OF_PLAYERS: usize = 23;
     let raise_amounts = vec![1, 2, 3, 4];
     for raise_amount in raise_amounts {
-        let shared_evaluator = Arc::new(Evaluator::new());
-        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+        let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
         table.take_action(HandAction::Raise(raise_amount));
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
@@ -703,10 +686,9 @@ fn test_one_raise_all_checks() {
 fn test_rounds_with_some_folding() {
     enable_logging_in_test();
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
     for round_number in 0..25 {
         info!("Starting round: {round_number}");
-        let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
+        let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..1000000 {
@@ -736,8 +718,7 @@ fn test_rounds_with_some_folding() {
 #[test]
 fn test_flop_string() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     table.flop = None;
     assert_eq!(table.get_flop_string(), "None");
 }
@@ -745,8 +726,7 @@ fn test_flop_string() {
 #[test]
 fn test_flop_string_secret() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     assert_eq!(table.get_flop_string_secret(), "Hidden");
     table.table_state = Flop;
     assert!(!table.get_flop_string_secret().contains("Hidden"));
@@ -757,8 +737,7 @@ fn test_flop_string_secret() {
 #[test]
 fn test_turn_string() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     assert_eq!(table.get_turn_string_secret(), "Hidden");
     table.table_state = Flop;
     assert_eq!(table.get_turn_string_secret(), "Hidden");
@@ -772,8 +751,7 @@ fn test_turn_string() {
 #[test]
 fn test_river_string() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     assert_eq!(table.get_river_string_secret(), "Hidden");
     table.table_state = Flop;
     assert_eq!(table.get_river_string_secret(), "Hidden");
@@ -857,8 +835,7 @@ pub fn test_get_hand_result_folds_in_middle() {
 #[test]
 pub fn test_ante_increase() {
     const NUMBER_OF_PLAYERS: usize = 2;
-    let shared_evaluator = Arc::new(Evaluator::new());
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     for _ in 0..(NUMBER_OF_PLAYERS * 2 - 1) {
         assert_eq!(table.ante, 1);
         table.deal();
@@ -903,10 +880,9 @@ pub fn test_sort_by_bet_amount_reversed() {
 
 #[test]
 pub fn test_only_unique_cards() {
-    let shared_evaluator = Arc::new(Evaluator::new());
     const NUMBER_OF_PLAYERS: usize = 23;
     for _ in 0..100000 {
-        let table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator.clone());
+        let table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
         let mut set: HashSet<Card> = HashSet::new();
         set.extend(table.flop.unwrap().iter());
         set.insert(table.turn.unwrap());
@@ -924,9 +900,8 @@ pub fn test_only_unique_cards() {
 
 #[test]
 pub fn test_only_unique_cards_with_deal() {
-    let shared_evaluator = Arc::new(Evaluator::new());
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, shared_evaluator);
+    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
     table.ante = 0;
     const ROUNDS: i32 = 100000;
     table.ante_round_increase = ROUNDS;
