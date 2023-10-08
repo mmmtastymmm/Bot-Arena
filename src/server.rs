@@ -9,6 +9,7 @@ pub struct Server {
 }
 
 impl Server {
+    /// Listen for server connections for the wait duration, then return all connections form the time frame.
     pub async fn from(server_url: &str, wait_duration: Duration) -> Server {
         let try_socket = TcpListener::bind(server_url).await;
         let listener = try_socket.expect("Failed to bind");
@@ -17,9 +18,9 @@ impl Server {
         let mut connections = vec![];
 
         let start_time = tokio::time::Instant::now();
-
+        // Loop until the timeout occurs
         loop {
-            // Calculate remaining time for the timeout
+            // Calculate remaining time for the timeout (will saturate to zero if the difference would have been negative)
             let remaining_time = wait_duration.saturating_sub(start_time.elapsed());
 
             match timeout(remaining_time, listener.accept()).await {
@@ -75,7 +76,7 @@ mod tests {
         );
         sleep(server_startup_wait_time).await;
 
-        // Connect a few times within the 30-second window
+        // Connect a few times within the server wait time
         let number_of_connections = 3;
         for i in 0..number_of_connections {
             info!("Trying to connect on iteration {i}");
