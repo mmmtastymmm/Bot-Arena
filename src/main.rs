@@ -41,7 +41,7 @@ async fn main() {
         Engine::new(Server::from_server_url("0.0.0.0:10100", Duration::from_millis(10)).await)
             .await;
     engine.unwrap_or_else(|error| {
-        println!("Couldn't init server with the following error: {}", error);
+        error!("Couldn't init server with the following error: {}", error);
         panic!("Couldn't init server.");
     });
 }
