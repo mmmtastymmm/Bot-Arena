@@ -2,21 +2,22 @@ extern crate core;
 #[macro_use]
 extern crate log;
 
-use std::sync::Arc;
-
 use env_logger::Env;
-use poker::{Card, Evaluator};
+use poker::Card;
 
 use table::Table;
 
 use crate::actions::HandAction;
 use crate::engine::Engine;
+use crate::globals::SHARED_EVALUATOR;
 
 mod actions;
 mod bet_stage;
 mod engine;
+mod globals;
 mod log_setup;
 mod player_components;
+mod server;
 mod table;
 
 fn get_deck() -> Vec<Card> {
@@ -29,12 +30,10 @@ fn main() {
     let deck = get_deck();
     info!("Have this many cards: {}", deck.len());
 
-    let shared_evaluator = Arc::new(Evaluator::new());
-
-    let mut table = Table::new(12, shared_evaluator.clone());
+    let mut table = Table::new(12, SHARED_EVALUATOR.clone());
     table.deal();
     info!("This many players: {}", table.get_player_count());
-    let engine = Engine::new(12, shared_evaluator);
+    let engine = Engine::new(12, SHARED_EVALUATOR.clone());
     info!(
         "This is how many players are in the engine: {}",
         engine.table.get_player_count()
