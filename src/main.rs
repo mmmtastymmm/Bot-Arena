@@ -2,7 +2,6 @@ extern crate core;
 #[macro_use]
 extern crate log;
 
-use std::future::Future;
 use std::process::exit;
 use std::time::Duration;
 
