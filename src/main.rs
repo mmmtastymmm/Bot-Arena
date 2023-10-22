@@ -2,7 +2,6 @@ extern crate core;
 #[macro_use]
 extern crate log;
 
-use std::process::exit;
 use std::time::Duration;
 
 use env_logger::Env;
@@ -23,20 +22,17 @@ mod player_components;
 mod server;
 mod table;
 
+const ERROR_CODE_NO_SUBS: i32 = 1;
 fn get_deck() -> Vec<Card> {
     Card::generate_deck().collect()
 }
 
 #[tokio::main]
-async fn main() {
-    let result = main_result().await;
-    match result {
-        Ok(_) => {}
-        Err(_) => exit(1),
-    }
+async fn main() -> Result<(), i32> {
+    main_result().await
 }
 
-async fn main_result() -> Result<(), String> {
+async fn main_result() -> Result<(), i32> {
     let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
     info!("Hello, world!");
     let deck = get_deck();
@@ -54,7 +50,7 @@ async fn main_result() -> Result<(), String> {
     .map_err(|error| {
         let error_string = format!("Couldn't init server with the following error: {}", error);
         error!("{error_string}");
-        error_string
+        ERROR_CODE_NO_SUBS
     })?;
     Ok(())
 }
@@ -74,4 +70,5 @@ async fn check_main_no_subs() {
     // Since there are no subs this should be an error
     let main_result = main_result().await;
     assert!(main_result.is_err());
+    assert_eq!(main_result.err().unwrap(), ERROR_CODE_NO_SUBS);
 }
