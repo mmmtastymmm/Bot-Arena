@@ -32,17 +32,19 @@ impl Server {
 
             match timeout(remaining_time, listener.accept()).await {
                 // The connection was good
-                Ok(Ok((stream, socket_address))) => {
+                Ok(Ok((stream, _))) => {
                     let addr = stream
                         .peer_addr()
                         .expect("connected streams should have a peer address");
-                    info!("Peer address: {}", addr);
 
                     let ws_stream = tokio_tungstenite::accept_async(stream)
                         .await
                         .expect("Error during the websocket handshake occurred");
 
-                    info!("New WebSocket connection: {}", addr);
+                    info!(
+                        "New WebSocket connection from the following address: {}",
+                        addr
+                    );
                     connections.push(ws_stream);
                 }
                 // The connection was bad

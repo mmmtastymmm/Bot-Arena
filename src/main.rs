@@ -113,12 +113,13 @@ mod tests {
         });
         let (mut write, mut read) = ws_stream.split();
         while let Some(message) = read.next().await {
-            info!("Get a message in worker {}", id);
             match message {
                 Ok(message) => {
                     if message.is_text() || message.is_binary() {
-                        println!("Received: {:?}", message);
-                        error!("Received: {:?}", message);
+                        info!(
+                            "Received the following message in worker {id}: {:?}",
+                            message
+                        );
                         let send_result = write.send(Message::Text(String::from("hi"))).await;
                         match send_result {
                             Ok(_) => {
