@@ -1,7 +1,8 @@
 use std::time::Duration;
 
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use futures_util::{SinkExt, StreamExt};
 use tokio::time::timeout;
+use tokio_tungstenite::tungstenite::Message;
 
 use crate::actions::HandAction;
 use crate::globals::SHARED_EVALUATOR;
@@ -47,43 +48,47 @@ impl Engine {
             }
         };
 
-        let table_state_json = self.table.get_state_string_for_player(current_index as i8);
-        if (connection
-            .write(table_state_json.as_str().unwrap_or_default().as_ref())
-            .await)
-            .is_err()
-        {
-            warn!("Couldn't write to user at index {current_index}, will take a fold action.");
-            return HandAction::Fold;
+        let table_state_string = self
+            .table
+            .get_state_string_for_player(current_index as i8)
+            .as_str()
+            .unwrap_or_default()
+            .to_string();
+        let result = connection.send(Message::Text(table_state_string)).await;
+        match result {
+            Ok(_) => {
+                debug!("Ok send to player {current_index}");
+            }
+            Err(error) => {
+                warn!("Couldn't write to user at index {current_index} because {error}, will take a fold action.");
+                return HandAction::Fold;
+            }
         }
 
-        let mut read_result = [0_u8; 2000];
-        let read_future = connection.read(&mut read_result);
+        let read_future = connection.next();
+        let timeout = timeout(self.read_timeout, read_future).await;
 
-        match timeout(self.read_timeout, read_future).await {
-            Ok(Ok(bytes_read)) => {
-                let action_string = String::from_utf8(read_result[0..bytes_read].to_vec());
-                match action_string {
-                    Ok(action_string) => {
-                        HandAction::parse_hand_action(action_string.as_str()).unwrap_or_else(|_| {
-                            warn!("Invalid hand action from client at {current_index}. Will return fold.");
-                            HandAction::Fold
-                        })
+        match timeout {
+            Ok(result) => match result {
+                None => HandAction::Fold,
+                Some(result) => match result {
+                    Ok(message) => {
+                        let message_string = message
+                            .into_text()
+                            .unwrap_or("Couldn't parse string".to_string());
+                        HandAction::parse_hand_action(message_string.as_str()).unwrap_or_else(|_| {
+                                    warn!("Invalid hand action from client at {current_index}. Will return fold. Given string \"{message_string}\"");
+                                    HandAction::Fold
+                                })
                     }
-                    Err(_) => {
-                        warn!("Values sent from client at {current_index} were not UTF-8, could not parse string. Will return fold.");
+                    Err(error) => {
+                        warn!("Couldn't parse the message due to error: {error}");
                         HandAction::Fold
                     }
-                }
-            }
-            Ok(Err(error)) => {
-                warn!("Couldn't read from the client at index {current_index} due to {error}, will return fold.");
-                HandAction::Fold
-            }
-            Err(_) => {
-                warn!(
-                    "Timed out reading from the client at index {current_index}. Will return fold."
-                );
+                },
+            },
+            Err(error) => {
+                warn!("Had a timeout: {error}");
                 HandAction::Fold
             }
         }

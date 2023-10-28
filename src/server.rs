@@ -3,9 +3,10 @@ use std::time::Duration;
 use log::info;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::time::timeout;
+use tokio_tungstenite::WebSocketStream;
 
 pub struct Server {
-    pub connections: Vec<TcpStream>,
+    pub connections: Vec<WebSocketStream<TcpStream>>,
     server_address: String,
 }
 
@@ -32,8 +33,17 @@ impl Server {
             match timeout(remaining_time, listener.accept()).await {
                 // The connection was good
                 Ok(Ok((stream, socket_address))) => {
-                    connections.push(stream);
-                    info!("There was a connection from_server_url: {socket_address}")
+                    let addr = stream
+                        .peer_addr()
+                        .expect("connected streams should have a peer address");
+                    info!("Peer address: {}", addr);
+
+                    let ws_stream = tokio_tungstenite::accept_async(stream)
+                        .await
+                        .expect("Error during the websocket handshake occurred");
+
+                    info!("New WebSocket connection: {}", addr);
+                    connections.push(ws_stream);
                 }
                 // The connection was bad
                 Ok(Err(e)) => {
