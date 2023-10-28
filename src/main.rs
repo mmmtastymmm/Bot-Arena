@@ -165,6 +165,7 @@ mod tests {
         tokio::time::sleep(Duration::from_secs(10)).await;
 
         let result = main_result.await.expect("Main result ended ok");
+        assert!(result.is_ok());
 
         // Wait for all tasks to complete
         for handle in handles {

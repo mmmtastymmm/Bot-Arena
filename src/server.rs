@@ -7,7 +7,6 @@ use tokio_tungstenite::WebSocketStream;
 
 pub struct Server {
     pub connections: Vec<WebSocketStream<TcpStream>>,
-    server_address: String,
 }
 
 impl Server {
@@ -57,10 +56,7 @@ impl Server {
                 }
             }
         }
-        Server {
-            connections,
-            server_address,
-        }
+        Server { connections }
     }
 
     pub async fn get_random_tcp_listener() -> TcpListener {

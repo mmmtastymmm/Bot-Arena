@@ -77,9 +77,9 @@ impl Engine {
                             .into_text()
                             .unwrap_or("Couldn't parse string".to_string());
                         HandAction::parse_hand_action(message_string.as_str()).unwrap_or_else(|_| {
-                                    warn!("Invalid hand action from client at {current_index}. Will return fold. Given string \"{message_string}\"");
-                                    HandAction::Fold
-                                })
+                            warn!("Invalid hand action from client at {current_index}. Will return fold. Given string \"{message_string}\"");
+                            HandAction::Fold
+                        })
                     }
                     Err(error) => {
                         warn!("Couldn't parse the message due to error: {error}");
@@ -97,8 +97,9 @@ impl Engine {
 
 #[cfg(test)]
 mod tests {
-    use tokio::net::TcpStream;
     use tokio::time::Duration;
+    use tokio_tungstenite::connect_async;
+    use url::Url;
 
     use crate::server::Server;
 
@@ -127,7 +128,7 @@ mod tests {
         let server_wait_duration = Duration::from_millis(200);
         // Get a unique server address
         let tcp_connection = Server::get_random_tcp_listener().await;
-        let address_string = format!("{}", tcp_connection.local_addr().unwrap());
+        let address_string = format!("ws://{}", tcp_connection.local_addr().unwrap());
 
         // Start the engine in the background
         let server_handle = tokio::spawn(async move {
@@ -141,12 +142,17 @@ mod tests {
         let number_of_connections = 3;
         for i in 0..number_of_connections {
             info!("Trying to connect on iteration {i}");
-            let stream = TcpStream::connect(address_string.as_str()).await;
-            assert!(stream.is_ok());
+            let url = Url::parse(address_string.as_str()).unwrap();
+            let _ = connect_async(url).await.unwrap_or_else(|error| {
+                let error_message =
+                    format!("Couldn't connect to the url on iteration {i} because {error}");
+                error!("{}", error_message);
+                panic!("{}", error_message)
+            });
         }
         // Check to make sure the server was constructed correctly
         let engine = server_handle.await.unwrap();
-        // This should be an error as no one connected
+        // This should be ok as 3 people connected
         assert!(engine.is_ok());
         // Check to make sure the server subs match the number of players
         let engine = engine.unwrap();
