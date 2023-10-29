@@ -69,6 +69,8 @@ impl Server {
 mod tests {
     use tokio::net::TcpStream;
     use tokio::time::{sleep, Duration};
+    use tokio_tungstenite::connect_async;
+    use url::Url;
 
     use crate::log_setup::enable_logging_in_test;
     use crate::server::Server;
@@ -102,8 +104,13 @@ mod tests {
         let number_of_connections = 3;
         for i in 0..number_of_connections {
             info!("Trying to connect on iteration {i}");
-            let stream = TcpStream::connect(ADDRESS).await;
-            assert!(stream.is_ok());
+            let url = Url::parse(format!("ws://{}", ADDRESS).as_str()).unwrap();
+            let _ = connect_async(url).await.unwrap_or_else(|error| {
+                let error_message =
+                    format!("Couldn't connect to the url on iteration {i} because {error}");
+                error!("{}", error_message);
+                panic!("{}", error_message)
+            });
             let sleep_duration = wait_duration / number_of_connections / 2;
             info!(
                 "Sleeping for {:?} before trying to connect again",
