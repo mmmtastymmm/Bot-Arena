@@ -358,16 +358,6 @@ impl Table {
         result_string
     }
 
-    /// Cleans all the cards from_server_url the table
-    pub fn clean_table(&mut self) {
-        self.flop = None;
-        self.turn = None;
-        self.river = None;
-        for player in &mut self.players {
-            player.fold();
-        }
-    }
-
     pub fn is_game_over(&self) -> bool {
         let alive_player_count = self
             .players
