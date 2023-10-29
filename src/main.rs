@@ -103,14 +103,7 @@ mod tests {
     async fn subscribe_and_take_random_action(port: i32, id: i32) {
         let url = Url::parse(format!("ws://0.0.0.0:{}", port).as_str()).unwrap();
         info!("Worker {} connecting to {}", id, url);
-        let (ws_stream, _) = connect_async(url).await.unwrap_or_else(|error| {
-            let error_message = format!(
-                "Couldn't connect to the url from id {} because {}",
-                id, error
-            );
-            error!("{}", error_message);
-            panic!("{}", error_message)
-        });
+        let (ws_stream, _) = connect_async(url).await.unwrap();
         let (mut write, mut read) = ws_stream.split();
         while let Some(message) = read.next().await {
             match message {
