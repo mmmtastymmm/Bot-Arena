@@ -143,12 +143,7 @@ mod tests {
         for i in 0..number_of_connections {
             info!("Trying to connect on iteration {i}");
             let url = Url::parse(address_string.as_str()).unwrap();
-            let _ = connect_async(url).await.unwrap_or_else(|error| {
-                let error_message =
-                    format!("Couldn't connect to the url on iteration {i} because {error}");
-                error!("{}", error_message);
-                panic!("{}", error_message)
-            });
+            let _ = connect_async(url).await.unwrap();
         }
         // Check to make sure the server was constructed correctly
         let engine = server_handle.await.unwrap();
