@@ -105,12 +105,7 @@ mod tests {
         for i in 0..number_of_connections {
             info!("Trying to connect on iteration {i}");
             let url = Url::parse(format!("ws://{}", ADDRESS).as_str()).unwrap();
-            let _ = connect_async(url).await.unwrap_or_else(|error| {
-                let error_message =
-                    format!("Couldn't connect to the url on iteration {i} because {error}");
-                error!("{}", error_message);
-                panic!("{}", error_message)
-            });
+            let _ = connect_async(url).await.unwrap();
             let sleep_duration = wait_duration / number_of_connections / 2;
             info!(
                 "Sleeping for {:?} before trying to connect again",
