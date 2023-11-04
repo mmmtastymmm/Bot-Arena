@@ -358,7 +358,7 @@ impl Table {
         result_string
     }
 
-    /// Cleans all the cards from_server_url the table
+    /// Cleans all the cards from the table
     pub fn clean_table(&mut self) {
         self.flop = None;
         self.turn = None;
@@ -470,7 +470,7 @@ impl Table {
         self.river = Option::from(*deck_iterator.next().unwrap());
     }
 
-    /// Mark all players that died from_server_url the last round as dead now
+    /// Mark all players that died from the last round as dead now
     fn check_for_player_death(&mut self) {
         // Check if players died on the past round
         for player in &mut self.players {
@@ -480,7 +480,7 @@ impl Table {
         }
     }
 
-    /// Deal cards to the alive players and collect the ante from_server_url them.
+    /// Deal cards to the alive players and collect the ante from them.
     fn deal_player_cards_collect_ante(&mut self, deck_iterator: &mut Iter<Card>) {
         // Deal every alive player cards now
         for (i, player) in &mut self.players.iter_mut().enumerate() {
