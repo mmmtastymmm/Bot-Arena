@@ -15,7 +15,7 @@ pub enum HandAction {
 }
 
 impl HandAction {
-    pub(crate) fn parse_hand_action(json: &str) -> serde_json::Result<HandAction> {
+    pub fn parse_hand_action(json: &str) -> serde_json::Result<HandAction> {
         let v: Value = serde_json::from_str(json)?;
 
         match v["action"]
