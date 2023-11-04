@@ -238,7 +238,7 @@ impl Table {
             return;
         }
         // Make sure the current player is active, or panic and end the program
-        if let PlayerState::Active(active) = self.get_current_player().player_state {
+        if let PlayerState::Active(active) = self.get_current_player_mut().player_state {
             self.take_provided_action(hand_action, active);
         } else {
             panic!("Tried to take an action on an inactive player");
@@ -279,9 +279,9 @@ impl Table {
         // Now check how to advance the hand
         match hand_action {
             HandAction::Fold => {
-                self.get_current_player().fold();
+                self.get_current_player_mut().fold();
                 let table_action = TableAction::TakePlayerAction(
-                    self.get_current_player().get_id(),
+                    self.get_current_player_mut().get_id(),
                     HandAction::Fold,
                 );
                 self.round_actions.push(table_action);
@@ -289,27 +289,27 @@ impl Table {
             HandAction::Check => {
                 // All in already, so stay all in
                 if difference == 0 {
-                    self.get_current_player().bet(0);
+                    self.get_current_player_mut().bet(0);
                     let table_action = TableAction::TakePlayerAction(
-                        self.get_current_player().get_id(),
+                        self.get_current_player_mut().get_id(),
                         HandAction::Check,
                     );
                     self.round_actions.push(table_action);
                 } else {
-                    self.get_current_player().fold();
+                    self.get_current_player_mut().fold();
                     let table_action = TableAction::TakePlayerAction(
-                        self.get_current_player().get_id(),
+                        self.get_current_player_mut().get_id(),
                         HandAction::Fold,
                     );
                     self.round_actions.push(table_action);
                 }
             }
             HandAction::Call => {
-                let bet_amount = self.get_current_player().bet(difference);
-                let index = self.get_current_player().get_id() as usize;
+                let bet_amount = self.get_current_player_mut().bet(difference);
+                let index = self.get_current_player_mut().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
                 let table_action = TableAction::TakePlayerAction(
-                    self.get_current_player().get_id(),
+                    self.get_current_player_mut().get_id(),
                     HandAction::Call,
                 );
                 self.round_actions.push(table_action);
@@ -318,11 +318,11 @@ impl Table {
                 // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
                 let acceptable_bet =
                     min(raise_amount + difference, self.get_pot_size() + difference);
-                let bet_amount = self.get_current_player().bet(acceptable_bet);
-                let index = self.get_current_player().get_id() as usize;
+                let bet_amount = self.get_current_player_mut().bet(acceptable_bet);
+                let index = self.get_current_player_mut().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
                 let table_action = TableAction::TakePlayerAction(
-                    self.get_current_player().get_id(),
+                    self.get_current_player_mut().get_id(),
                     HandAction::Raise(bet_amount),
                 );
                 self.round_actions.push(table_action);
@@ -428,21 +428,21 @@ impl Table {
                 self.current_player_index = 0;
             }
             // An all in player is no longer can take actions so skip them as well
-            if self.get_current_player().total_money == 0 {
+            if self.get_current_player_mut().total_money == 0 {
                 continue;
             }
             // If the player is active while also not all in they are the next active player
-            match self.get_current_player().player_state {
+            match self.get_current_player_mut().player_state {
                 PlayerState::Folded => {}
                 PlayerState::Active(_) => {
                     break;
                 }
             }
         }
-        if !self.get_current_player().is_alive() {
+        if !self.get_current_player_mut().is_alive() {
             panic!("Current player not alive after update!")
         }
-        match self.get_current_player().player_state {
+        match self.get_current_player_mut().player_state {
             PlayerState::Folded => {
                 panic!("Current player not active after update")
             }
@@ -497,18 +497,11 @@ impl Table {
     }
 
     pub fn get_state_json_for_player(&self, id: i8) -> JsonValue {
-        let player_strings: Vec<_> = self
-            .players
-            .iter()
-            .map(|x| {
-                if x.get_id() == id {
-                    x.as_json()
-                } else {
-                    x.as_json_no_secret_data()
-                }
-            })
-            .collect();
+        let player_strings: Vec<_> = self.players.iter().map(|x| x.as_json()).collect();
+        let cards_string = {};
         object! {
+            id: id,
+            current_bet: "",
             flop: self.get_flop_string_secret(),
             turn: self.get_turn_string_secret(),
             river: self.get_river_string_secret(),
@@ -696,8 +689,12 @@ impl Table {
         }
     }
 
-    fn get_current_player(&mut self) -> &mut Player {
+    fn get_current_player_mut(&mut self) -> &mut Player {
         self.players.get_mut(self.current_player_index).unwrap()
+    }
+
+    fn get_current_player(&self) -> &Player {
+        self.players.get(self.current_player_index).unwrap()
     }
 
     pub fn compare_players(
