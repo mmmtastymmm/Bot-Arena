@@ -363,7 +363,7 @@ pub fn test_two_side_pots_with_actions_checked() {
     // Second two bet 2 each, total of 12, lose 6 to above, split the other 6
     assert_eq!(table.players[2].total_money, 2);
     assert_eq!(table.players[3].total_money, 2);
-    // This one takes 7 from player 6, and has lost 3 from_server_url the above pots, and anted 1
+    // This one takes 7 from player 6, and has lost 3 from the above pots, and anted 1
     assert_eq!(table.players[4].total_money, 503);
     // This one just loses 11
     assert_eq!(table.players[5].total_money, 489);
