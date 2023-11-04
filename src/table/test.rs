@@ -140,6 +140,14 @@ pub fn check_table_has_right_amount(table: &Table) {
 }
 
 #[test]
+pub fn check_table_string() {
+    let mut table = deal_test_cards();
+    table.deal();
+    let player_string = table.get_state_string_for_current_player();
+    assert!(!player_string.is_empty());
+}
+
+#[test]
 pub fn check_table_action_strings() {
     assert_eq!(
         format!("{}", TableAction::TakePlayerAction(3_i8, HandAction::Fold)),
@@ -489,7 +497,7 @@ pub fn test_print_fold_and_active_players() {
 pub fn check_only_one_hand_returned_with_string() {
     let mut table = Table::new(23, SHARED_EVALUATOR.clone());
     table.deal();
-    let json_string = table.get_state_string_for_player(0).to_string();
+    let json_string = table.get_state_json_for_player(0).to_string();
     // Three open brackets, one for the player list and 2 for each open card bracket.
     assert_eq!(json_string.matches('[').count(), 3);
 }

@@ -487,7 +487,20 @@ impl Table {
         }
     }
 
-    pub fn get_state_string_for_player(&self, id: i8) -> JsonValue {
+    pub fn get_state_string_for_current_player(&self) -> String {
+        self.get_state_json_for_player(self.get_current_player_index() as i8)
+            .to_string()
+    }
+
+    pub fn get_state_json_for_current_player(&self) -> JsonValue {
+        self.get_state_json_for_player(self.get_current_player_index() as i8)
+    }
+
+    pub fn get_state_string_for_player(&self, id: i8) -> String {
+        self.get_state_json_for_player(id).to_string()
+    }
+
+    pub fn get_state_json_for_player(&self, id: i8) -> JsonValue {
         let player_strings: Vec<_> = self
             .players
             .iter()

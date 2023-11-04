@@ -176,12 +176,12 @@ impl Player {
 
     /// Makes a json object that holds the data in the player (all including cards)
     pub fn as_json(&self) -> JsonValue {
-        object!(player: object! (player_state: self.player_state.as_json(), id: self.id, total_money: self.total_money))
+        object!(id: self.id, player_state: self.player_state.as_json(), total_money: self.total_money)
     }
 
     /// Makes a json object that holds the data in the player but no secret data (cards)
     pub fn as_json_no_secret_data(&self) -> JsonValue {
-        object!(player: object! (player_state: self.player_state.as_json_no_secret_data(), id: self.id, total_money: self.total_money))
+        object!(id: self.id, player_state: self.player_state.as_json_no_secret_data(), total_money: self.total_money)
     }
 }
 
@@ -365,7 +365,7 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":500}},\"id\":0,\"total_money\":0}}").unwrap())
+            json::parse("{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":500}},\"id\":0,\"total_money\":0}").unwrap())
     }
 
     #[test]
@@ -387,7 +387,7 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"bet\":500}},\"id\":0,\"total_money\":0}}").unwrap())
+            json::parse("{\"player_state\":{\"state_type\":\"active\",\"details\":{\"bet\":500}},\"id\":0,\"total_money\":0}").unwrap())
     }
 
     #[test]
@@ -436,10 +436,7 @@ mod tests {
         // Get the secret json version
         let secret_player_json = player1.as_json_no_secret_data();
         // Make sure it is folded
-        assert_eq!(
-            secret_player_json["player"]["player_state"]["state_type"],
-            "folded"
-        );
+        assert_eq!(secret_player_json["player_state"]["state_type"], "folded");
         // Make sure there are no cards in the json
         let player_string = secret_player_json.to_string();
         let cards = Card::generate_deck();
