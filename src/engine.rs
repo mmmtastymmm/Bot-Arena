@@ -48,12 +48,8 @@ impl Engine {
             }
         };
 
-        let table_state_string = self
-            .table
-            .get_state_string_for_player(current_index as i8)
-            .as_str()
-            .unwrap_or_default()
-            .to_string();
+        let json_state = self.table.get_state_string_for_player(current_index as i8);
+        let table_state_string = json_state.as_str().unwrap_or_default().to_string();
         let result = connection.send(Message::Text(table_state_string)).await;
         match result {
             Ok(_) => {
