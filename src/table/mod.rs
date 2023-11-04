@@ -654,7 +654,7 @@ impl Table {
                     if self.get_pot_size() == 0 {
                         break;
                     }
-                    // Take the bet from_server_url everyone
+                    // Take the bet from everyone
                     let mut total = 0;
                     for bet in &mut self.player_bets {
                         let side_pot_amount = min(*bet_amount, *bet);
