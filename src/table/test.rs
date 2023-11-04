@@ -2,15 +2,15 @@ use std::cmp::min;
 use std::collections::HashSet;
 
 use poker::Card;
+use rand::Rng;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
 use crate::globals::SHARED_EVALUATOR;
 use crate::log_setup::enable_logging_in_test;
-use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
+use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
 use crate::table::{Table, TableAction};
 
 fn deal_test_cards() -> Table {
@@ -367,7 +367,7 @@ pub fn test_two_side_pots_with_actions_checked() {
     assert_eq!(table.players[4].total_money, 503);
     // This one just loses 11
     assert_eq!(table.players[5].total_money, 489);
-    // Generate the latest round string and make sure some events occurred
+    // Generate the latest round string and make sure some events  occurred
     let last_round = table.generate_last_round_strings();
     assert!(last_round.contains("Table dealt round 1."));
     assert!(last_round.contains("Table advanced to flop."));
