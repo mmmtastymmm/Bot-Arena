@@ -257,9 +257,10 @@ pub fn test_get_bet_increases_amount() {
     }
     let result = Table::get_bet_increases_amount(&players);
     assert_eq!(result[0], 0);
-    for index in 1..10 {
+
+    for (index, &value) in result.iter().enumerate().take(10).skip(1) {
         let i = index as i32;
-        assert_eq!(result[index], i * i - (i - 1) * (i - 1));
+        assert_eq!(value, i * i - (i - 1) * (i - 1));
     }
 }
 

@@ -58,7 +58,7 @@ impl Server {
         }
         Server { connections }
     }
-
+    #[cfg(test)]
     pub async fn get_random_tcp_listener() -> TcpListener {
         let try_socket = TcpListener::bind("0.0.0.0:0").await;
         try_socket.expect("Failed to bind")
