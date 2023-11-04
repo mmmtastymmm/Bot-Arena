@@ -4,7 +4,7 @@ use std::fmt::Formatter;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use json::{object, JsonValue};
+use json::{object, stringify_pretty, JsonValue};
 use poker::{Card, Evaluator};
 
 use crate::actions::HandAction;
@@ -489,7 +489,7 @@ impl Table {
     }
 
     pub fn get_state_string_for_current_player(&self) -> String {
-        self.get_state_json_for_current_player().to_string()
+        stringify_pretty(self.get_state_json_for_current_player(), 4)
     }
 
     pub fn get_state_json_for_current_player(&self) -> JsonValue {
