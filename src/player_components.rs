@@ -61,14 +61,23 @@ impl PlayerState {
             }
         }
     }
-}
 
-impl PlayerState {
     pub fn is_active(&self) -> bool {
         match self {
             Folded => false,
             Active(_) => true,
         }
+    }
+
+    pub fn get_cards_string(&self) -> String {
+        match &self {
+            PlayerState::Folded => "None",
+            PlayerState::Active(active) => {
+                // active.hand
+                ""
+            }
+        }
+        .to_string()
     }
 }
 
