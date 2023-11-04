@@ -460,7 +460,7 @@ impl Table {
         self.river = Option::from(*deck_iterator.next().unwrap());
     }
 
-    /// Mark all players that died from_server_url the last round as dead now
+    /// Mark all players that died from the last round as dead now
     fn check_for_player_death(&mut self) {
         // Check if players died on the past round
         for player in &mut self.players {
@@ -470,7 +470,7 @@ impl Table {
         }
     }
 
-    /// Deal cards to the alive players and collect the ante from_server_url them.
+    /// Deal cards to the alive players and collect the ante from them.
     fn deal_player_cards_collect_ante(&mut self, deck_iterator: &mut Iter<Card>) {
         // Deal every alive player cards now
         for (i, player) in &mut self.players.iter_mut().enumerate() {
@@ -644,7 +644,7 @@ impl Table {
                     if self.get_pot_size() == 0 {
                         break;
                     }
-                    // Take the bet from_server_url everyone
+                    // Take the bet from everyone
                     let mut total = 0;
                     for bet in &mut self.player_bets {
                         let side_pot_amount = min(*bet_amount, *bet);
