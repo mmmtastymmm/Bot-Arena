@@ -367,7 +367,7 @@ pub fn test_two_side_pots_with_actions_checked() {
     assert_eq!(table.players[4].total_money, 503);
     // This one just loses 11
     assert_eq!(table.players[5].total_money, 489);
-    // Generate the latest round string and make sure some events   π occurred
+    // Generate the latest round string and make sure some events occurred
     let last_round = table.generate_last_round_strings();
     assert!(last_round.contains("Table dealt round 1."));
     assert!(last_round.contains("Table advanced to flop."));
