@@ -3,17 +3,23 @@ use std::time::Duration;
 use log::info;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::time::timeout;
+use tokio_tungstenite::WebSocketStream;
 
 pub struct Server {
-    pub connections: Vec<TcpStream>,
+    pub connections: Vec<WebSocketStream<TcpStream>>,
 }
 
 impl Server {
     /// Listen for server connections for the wait duration, then return all connections form the time frame.
-    pub async fn from(server_url: &str, wait_duration: Duration) -> Server {
+    pub async fn from_server_url(server_url: &str, wait_duration: Duration) -> Server {
         let try_socket = TcpListener::bind(server_url).await;
         let listener = try_socket.expect("Failed to bind");
-        info!("Listening on: {}", server_url);
+        Server::from_tcp_listener(listener, wait_duration).await
+    }
+
+    pub async fn from_tcp_listener(listener: TcpListener, wait_duration: Duration) -> Server {
+        let server_address = format!("{:?}", listener.local_addr().unwrap());
+        info!("Listening on: {}", server_address);
         info!("Will try to listen for: {:?}", wait_duration);
         let mut connections = vec![];
 
@@ -25,9 +31,20 @@ impl Server {
 
             match timeout(remaining_time, listener.accept()).await {
                 // The connection was good
-                Ok(Ok((stream, socket_address))) => {
-                    connections.push(stream);
-                    info!("There was a connection from: {socket_address}")
+                Ok(Ok((stream, _))) => {
+                    let addr = stream
+                        .peer_addr()
+                        .expect("connected streams should have a peer address");
+
+                    let ws_stream = tokio_tungstenite::accept_async(stream)
+                        .await
+                        .expect("Error during the websocket handshake occurred");
+
+                    info!(
+                        "New WebSocket connection from the following address: {}",
+                        addr
+                    );
+                    connections.push(ws_stream);
                 }
                 // The connection was bad
                 Ok(Err(e)) => {
@@ -41,12 +58,19 @@ impl Server {
         }
         Server { connections }
     }
+
+    pub async fn get_random_tcp_listener() -> TcpListener {
+        let try_socket = TcpListener::bind("0.0.0.0:0").await;
+        try_socket.expect("Failed to bind")
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use tokio::net::TcpStream;
     use tokio::time::{sleep, Duration};
+    use tokio_tungstenite::connect_async;
+    use url::Url;
 
     use crate::log_setup::enable_logging_in_test;
     use crate::server::Server;
@@ -63,7 +87,7 @@ mod tests {
 
         // Start the server in the background
         let server_handle = tokio::spawn(async move {
-            Server::from(
+            Server::from_server_url(
                 server_url.as_str(),
                 wait_duration + server_startup_wait_time,
             )
@@ -80,8 +104,8 @@ mod tests {
         let number_of_connections = 3;
         for i in 0..number_of_connections {
             info!("Trying to connect on iteration {i}");
-            let stream = TcpStream::connect(ADDRESS).await;
-            assert!(stream.is_ok());
+            let url = Url::parse(format!("ws://{}", ADDRESS).as_str()).unwrap();
+            let _ = connect_async(url).await.unwrap();
             let sleep_duration = wait_duration / number_of_connections / 2;
             info!(
                 "Sleeping for {:?} before trying to connect again",
@@ -101,5 +125,12 @@ mod tests {
         let server = server_handle.await.unwrap();
 
         assert_eq!(server.connections.len(), number_of_connections as usize); // 3 connections should be accepted
+    }
+
+    #[tokio::test]
+    async fn test_random_tcp() {
+        // Make sure we have a real port
+        let tcp = Server::get_random_tcp_listener().await;
+        assert_ne!(tcp.local_addr().unwrap().port(), 0);
     }
 }

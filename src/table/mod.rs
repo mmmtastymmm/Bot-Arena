@@ -167,6 +167,10 @@ impl Table {
         }
     }
 
+    pub fn get_current_player_index(&self) -> usize {
+        self.current_player_index
+    }
+
     /// Translates the flop into a human readable string
     pub fn get_flop_string_secret(&self) -> String {
         match self.flop {
