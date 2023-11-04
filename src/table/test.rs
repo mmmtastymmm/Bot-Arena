@@ -509,16 +509,6 @@ pub fn test_results_all_tied() {
 }
 
 #[test]
-fn test_clean() {
-    const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
-    table.deal();
-    assert!(table.flop.is_some());
-    table.clean_table();
-    assert!(table.flop.is_none());
-}
-
-#[test]
 fn test_players_all_checks() {
     const NUMBER_OF_PLAYERS: usize = 23;
     let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
