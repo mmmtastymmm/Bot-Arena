@@ -5,7 +5,6 @@ use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::actions::HandAction;
-use crate::globals::SHARED_EVALUATOR;
 use crate::server::Server;
 use crate::table::Table;
 
@@ -22,7 +21,7 @@ impl Engine {
         }
 
         let engine = Engine {
-            table: Table::new(server.connections.len(), SHARED_EVALUATOR.clone()),
+            table: Table::new(server.connections.len()),
             server,
             read_timeout,
         };

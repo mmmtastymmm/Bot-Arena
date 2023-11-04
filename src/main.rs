@@ -12,7 +12,6 @@ use table::Table;
 
 use crate::args::BotArgs;
 use crate::engine::Engine;
-use crate::globals::SHARED_EVALUATOR;
 use crate::server::Server;
 
 mod actions;
@@ -42,7 +41,7 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
     let deck = get_deck();
     info!("Have this many cards: {}", deck.len());
 
-    let mut table = Table::new(12, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(12);
     table.deal();
     info!("This many players: {}", table.get_player_count());
 

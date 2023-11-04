@@ -10,6 +10,7 @@ use poker::{Card, Evaluator};
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
+use crate::globals::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -106,7 +107,7 @@ impl fmt::Display for Table {
 impl Table {
     const ANTE_INCREASE_AMOUNT: i32 = 1;
     /// Makes a table of with the specified number of players.
-    pub fn new(number_of_players: usize, evaluator: Arc<Evaluator>) -> Self {
+    pub fn new(number_of_players: usize) -> Self {
         if number_of_players > 23 {
             panic!("Too many players for one table!")
         }
@@ -117,7 +118,7 @@ impl Table {
         let initial_index = number_of_players - 1;
         let mut table = Table {
             players,
-            evaluator,
+            evaluator: SHARED_EVALUATOR.clone(),
             flop: None,
             turn: None,
             river: None,
