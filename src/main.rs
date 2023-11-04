@@ -17,6 +17,7 @@ use crate::server::Server;
 mod actions;
 mod args;
 mod bet_stage;
+mod card_expansion;
 mod engine;
 mod globals;
 mod log_setup;
