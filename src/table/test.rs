@@ -310,32 +310,32 @@ pub fn two_winners() {
 #[test]
 pub fn test_two_side_pots_with_actions_checked() {
     let mut table = two_sets_of_ties();
-    assert_eq!(table.get_current_player().get_id(), 1);
+    assert_eq!(table.get_current_player_mut().get_id(), 1);
     table.take_action(HandAction::Check);
     assert_eq!(
         *table.round_actions.last().unwrap(),
         TableAction::TakePlayerAction(1_i8, HandAction::Check)
     );
-    assert_eq!(table.get_current_player().get_id(), 2);
+    assert_eq!(table.get_current_player_mut().get_id(), 2);
     table.take_action(HandAction::Raise(1));
     assert_eq!(
         *table.round_actions.last().unwrap(),
         TableAction::TakePlayerAction(2_i8, HandAction::Raise(1))
     );
-    assert_eq!(table.get_current_player().get_id(), 3);
+    assert_eq!(table.get_current_player_mut().get_id(), 3);
     table.take_action(HandAction::Call);
     assert_eq!(
         *table.round_actions.last().unwrap(),
         TableAction::TakePlayerAction(3_i8, HandAction::Call)
     );
-    assert_eq!(table.get_current_player().get_id(), 4);
+    assert_eq!(table.get_current_player_mut().get_id(), 4);
     table.take_action(HandAction::Raise(10));
     // Note: betting 9 is going all in
     assert_eq!(
         *table.round_actions.last().unwrap(),
         TableAction::TakePlayerAction(4_i8, HandAction::Raise(9))
     );
-    assert_eq!(table.get_current_player().get_id(), 5);
+    assert_eq!(table.get_current_player_mut().get_id(), 5);
     table.take_action(HandAction::Call);
     // Now we are in the next stage
     assert_eq!(
@@ -699,7 +699,7 @@ fn test_rounds_with_some_folding() {
                 assert!(table.is_game_over());
                 break;
             }
-            assert!(table.get_current_player().player_state.is_active());
+            assert!(table.get_current_player_mut().player_state.is_active());
             let mut rng = thread_rng();
             let action_int = rng.gen_range(0..4);
             match action_int {
