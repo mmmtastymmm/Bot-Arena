@@ -74,7 +74,7 @@ pub struct Table {
     dealer_button_index: usize,
     /// The size of the ante
     ante: i32,
-    /// How many hands have been played so far
+    /// How many hands have been played so far 1 INDEXED (not zero)
     hand_number: i32,
     /// Whose turn it is right now
     current_player_index: usize,

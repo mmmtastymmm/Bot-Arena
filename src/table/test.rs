@@ -697,7 +697,29 @@ fn test_api_reasonable(table: &Table) {
     assert!(json["hand_number"].as_usize().is_some());
     assert!(json["current_highest_bet"].as_usize().is_some());
     // Flop
-    // assert!("flop":"Hidden","turn":"Hidden","river":"Hidden","dealer_button_index":0,"players"
+    let flop = &json["flop"];
+    assert!(flop.len() == 1 || flop.len() == 3);
+    if flop.len() == 1 {
+        assert_eq!(flop[0], "Hidden");
+    }
+    // Turn
+    let turn = &json["turn"].as_str();
+    assert!(turn.is_some());
+    // River
+    let river = &json["river"].as_str();
+    assert!(river.is_some());
+    // Dealer button index
+    assert!(json["dealer_button_index"].as_u8().is_some());
+    // Players
+    assert_eq!(json["players"].len(), table.players.len());
+    // Actions
+    assert!(!json["actions"].is_empty());
+    // Previous actions, empty first hand then should have previous hands
+    if table.hand_number == 1 {
+        assert!(json["previous_actions"].is_empty());
+    } else {
+        assert!(!json["previous_actions"].is_empty());
+    }
 }
 
 #[test]
