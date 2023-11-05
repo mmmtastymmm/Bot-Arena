@@ -30,7 +30,7 @@ pub async fn subscribe_and_take_call_action(port: i32, id: usize) {
                 }
             }
             Err(e) => {
-                let shutdown = format!("{e}").contains("Connection reset by peer");
+                let shutdown = format!("{e}").contains("Connection reset ");
                 if shutdown {
                     info!("Sever shutdown detected in {name}, joining now.")
                 } else {
@@ -78,7 +78,7 @@ pub async fn subscribe_and_take_random_action(port: i32, id: usize) {
                 }
             }
             Err(e) => {
-                let shutdown = format!("{e}").contains("Connection reset by peer");
+                let shutdown = format!("{e}").contains("Connection reset");
                 if shutdown {
                     info!("Sever shutdown detected in {name}, joining now.")
                 } else {
