@@ -39,6 +39,22 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
     })?;
 
     let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
+
+    // Start any test bots
+    let mut bot_futures = vec![];
+    for id in 0..args.n_call_bots {
+        let result =
+            tokio::task::spawn(async move { subscribe_and_take_call_action(args.port, id).await });
+        bot_futures.push(result);
+    }
+    for id in 0..args.n_random_bots {
+        let result =
+            tokio::task::spawn(
+                async move { subscribe_and_take_random_action(args.port, id).await },
+            );
+        bot_futures.push(result);
+    }
+
     // Start the engine
     let engine_future = Engine::new(
         Server::from_server_url(
@@ -48,15 +64,6 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
         .await,
         Duration::from_nanos(1),
     );
-    // Start any test bots
-    let mut call_bot_futures = vec![];
-    for id in 0..args.n_call_bots {
-        call_bot_futures.push(subscribe_and_take_call_action(args.port, id));
-    }
-    let mut random_bot_futures = vec![];
-    for id in 0..args.n_random_bots {
-        random_bot_futures.push(subscribe_and_take_random_action(args.port, id));
-    }
 
     // Wait for the engine to finish accepting connections
     let mut engine = engine_future.await.map_err(|error| {
@@ -66,15 +73,20 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
     })?;
     // Play the game
     engine.play_game().await;
-    for (index, bot_future) in call_bot_futures.into_iter().enumerate() {
-        info!("Waiting for call bot with id {index}");
-        bot_future.await;
-        info!("Bot {index} finished");
-    }
-    for (index, bot_future) in random_bot_futures.into_iter().enumerate() {
-        info!("Waiting for random bot with id {index}");
-        bot_future.await;
-        info!("Bot {index} finished");
+    info!("Game is over now!");
+    // Game is now over after the await, shutdown the server (drop it)
+    drop(engine);
+    // Join any testing bots now
+    for (index, bot_future) in bot_futures.into_iter().enumerate() {
+        info!("Waiting for bot at index {index}");
+        match bot_future.await {
+            Ok(_) => {
+                info!("Bot {index} finished");
+            }
+            Err(error) => {
+                info!("Bot {index} finished with error: {error}");
+            }
+        };
     }
     Ok(())
 }
