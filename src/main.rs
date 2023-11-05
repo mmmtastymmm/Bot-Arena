@@ -6,9 +6,6 @@ use std::time::Duration;
 
 use clap::Parser;
 use env_logger::Env;
-use poker::Card;
-
-use table::Table;
 
 use crate::args::BotArgs;
 use crate::engine::Engine;
@@ -27,24 +24,13 @@ mod table;
 
 const ERROR_CODE_NO_SUBS: i32 = 1;
 
-fn get_deck() -> Vec<Card> {
-    Card::generate_deck().collect()
-}
-
-#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
+#[tokio::main]
 async fn main() -> Result<(), i32> {
     main_result(BotArgs::parse()).await
 }
 
 async fn main_result(args: BotArgs) -> Result<(), i32> {
     let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
-    info!("Hello, world!");
-    let deck = get_deck();
-    info!("Have this many cards: {}", deck.len());
-
-    let mut table = Table::new(12);
-    table.deal();
-    info!("This many players: {}", table.get_player_count());
 
     let mut engine = Engine::new(
         Server::from_server_url(
@@ -56,7 +42,7 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
     )
     .await
     .map_err(|error| {
-        let error_string = format!("Couldn't init server with the following error: {}", error);
+        let error_string = format!("Couldn't init server due to the following error: {}", error);
         error!("{error_string}");
         ERROR_CODE_NO_SUBS
     })?;
@@ -69,24 +55,13 @@ mod tests {
     use std::time::Duration;
 
     use futures_util::{SinkExt, StreamExt};
-    use poker::Card;
     use tokio_tungstenite::connect_async;
     use tokio_tungstenite::tungstenite::Message;
     use url::Url;
 
     use crate::args::BotArgs;
     use crate::log_setup::enable_logging_in_test;
-    use crate::{get_deck, main_result, ERROR_CODE_NO_SUBS};
-
-    #[test]
-    fn check_deck_size() {
-        let deck: Vec<Card> = get_deck();
-        assert_eq!(deck.len(), 52);
-        let example_rank = deck.get(0).unwrap().rank();
-        // Check the rank is reasonable
-        assert!(poker::Rank::Ace >= example_rank);
-        assert!(poker::Rank::Two <= example_rank);
-    }
+    use crate::{main_result, ERROR_CODE_NO_SUBS};
 
     #[tokio::test]
     async fn check_main_no_subs() {
