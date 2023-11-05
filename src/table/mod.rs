@@ -4,12 +4,13 @@ use std::fmt::Formatter;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use json::{object, stringify_pretty, JsonValue};
+use json::{array, object, stringify_pretty, JsonValue};
 use poker::{Card, Evaluator};
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
+use crate::card_expansion::CardPrinting;
 use crate::globals::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
 
@@ -158,66 +159,74 @@ impl Table {
         round_string
     }
 
-    /// Translates the flop into a human readable string
-    pub fn get_flop_string(&self) -> String {
-        match self.flop {
-            None => "None".to_string(),
-            Some(cards) => {
-                format!("{} {} {}", cards[0], cards[1], cards[2])
-            }
-        }
-    }
-
     pub fn get_current_player_index(&self) -> usize {
         self.current_player_index
     }
 
-    /// Translates the flop into a human readable string
-    pub fn get_flop_string_secret(&self) -> String {
+    /// Translates the flop into json
+    pub fn get_flop_string(&self) -> JsonValue {
         match self.flop {
-            None => "None".to_string(),
+            None => array!["None"],
+            Some(cards) => {
+                array![
+                    cards[0].to_ascii_string(),
+                    cards[1].to_ascii_string(),
+                    cards[2].to_ascii_string()
+                ]
+            }
+        }
+    }
+
+    /// Translates the flop into a human readable string
+    pub fn get_flop_string_secret(&self) -> JsonValue {
+        match self.flop {
+            None => array!["None"],
             Some(cards) => match &self.table_state {
-                PreFlop => "Hidden".to_string(),
+                PreFlop => array!["Hidden"],
                 _ => {
-                    format!("{} {} {}", cards[0], cards[1], cards[2])
+                    array![
+                        cards[0].to_ascii_string(),
+                        cards[1].to_ascii_string(),
+                        cards[2].to_ascii_string()
+                    ]
                 }
             },
         }
     }
 
     /// Translates the turn into a human readable string
-    pub fn get_turn_string(&self) -> String {
+    pub fn get_turn_string(&self) -> JsonValue {
         match self.turn {
-            None => "None".to_string(),
-            Some(card) => card.to_string(),
+            None => "None".into(),
+            Some(card) => card.to_ascii_string().into(),
         }
     }
 
-    pub fn get_turn_string_secret(&self) -> String {
+    pub fn get_turn_string_secret(&self) -> JsonValue {
         match self.turn {
-            None => "None".to_string(),
+            None => "None".into(),
             Some(card) => match &self.table_state {
-                PreFlop => "Hidden".to_string(),
-                Flop => "Hidden".to_string(),
-                _ => card.to_string(),
+                PreFlop => "Hidden".into(),
+                Flop => "Hidden".into(),
+                _ => card.to_ascii_string().into(),
             },
         }
     }
 
     /// Translates the river into a human readable string
-    pub fn get_river_string(&self) -> String {
+    pub fn get_river_string(&self) -> JsonValue {
         match self.river {
-            None => "None".to_string(),
-            Some(card) => card.to_string(),
+            None => "None".into(),
+            Some(card) => card.to_ascii_string().into(),
         }
     }
 
-    pub fn get_river_string_secret(&self) -> String {
+    pub fn get_river_string_secret(&self) -> JsonValue {
         match self.river {
-            None => "None".to_string(),
+            None => "None".into(),
             Some(card) => match &self.table_state {
-                River => card.to_string(),
-                _ => "Hidden".to_string(),
+                River => card.to_ascii_string().into(),
+                _ => "Hidden".into(),
             },
         }
     }

@@ -467,9 +467,9 @@ pub fn test_print() {
     let mut table = Table::new(23);
     table.deal();
     let string = table.to_string();
-    assert!(string.contains("\"flop\":\"["));
-    assert!(string.contains("\"turn\":\"["));
-    assert!(string.contains("\"river\":\"["));
+    assert!(string.contains("\"flop\":["));
+    assert!(string.contains("\"turn\":"));
+    assert!(string.contains("\"river\":"));
     assert!(string.contains("\"dealer_button_index\":"));
     assert!(string.contains("\"hand_number\":"));
     assert!(string.contains("\"players\":["));
@@ -482,9 +482,9 @@ pub fn test_print_fold_and_active_players() {
     let mut table = Table::new(23);
     table.players.get_mut(0).unwrap().fold();
     let string = table.to_string();
-    assert!(string.contains("\"flop\":\"["));
-    assert!(string.contains("\"turn\":\"["));
-    assert!(string.contains("\"river\":\"["));
+    assert!(string.contains("\"flop\":["));
+    assert!(string.contains("\"turn\":"));
+    assert!(string.contains("\"river\":"));
     assert!(string.contains("\"dealer_button_index\":"));
     assert!(string.contains("\"hand_number\":"));
     assert!(string.contains("\"players\":["));
@@ -497,8 +497,8 @@ pub fn check_correct_number_of_lists_present() {
     let mut table = Table::new(23);
     table.deal();
     let json_string = table.get_table_state_json_for_player(0).to_string();
-    // 4 open brackets, 1 for the player list, 1 for the card list, 1 for actions, 1 for previous actions
-    assert_eq!(json_string.matches('[').count(), 4);
+    // 5 open brackets, 1 for the player list, 1 for the card list, 1 for the flop, 1 for actions, 1 for previous actions
+    assert_eq!(json_string.matches('[').count(), 5);
 }
 
 #[test]
@@ -680,6 +680,26 @@ fn test_one_raise_all_checks() {
     }
 }
 
+fn test_api_reasonable(table: &Table) {
+    let json = table.get_state_json_for_current_player();
+    let _json_string = json.to_string();
+    // The object is filled out
+    assert_eq!(json.len(), 12);
+    // Id check
+    assert!(json["id"].as_i8().is_some());
+    // Current bet check
+    assert!(json["current_bet"].as_i32().is_some());
+    // Cards check
+    assert_eq!(json["cards"].len(), 2);
+    assert!(json["cards"][0].as_str().is_some());
+    assert!(json["cards"][1].as_str().is_some());
+    // Hand number
+    assert!(json["hand_number"].as_usize().is_some());
+    assert!(json["current_highest_bet"].as_usize().is_some());
+    // Flop
+    // assert!("flop":"Hidden","turn":"Hidden","river":"Hidden","dealer_button_index":0,"players"
+}
+
 #[test]
 fn test_rounds_with_some_folding() {
     enable_logging_in_test();
@@ -687,6 +707,7 @@ fn test_rounds_with_some_folding() {
     for round_number in 0..25 {
         info!("Starting round: {round_number}");
         let mut table = Table::new(NUMBER_OF_PLAYERS);
+        test_api_reasonable(&table);
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..1000000 {
@@ -718,18 +739,19 @@ fn test_flop_string() {
     const NUMBER_OF_PLAYERS: usize = 23;
     let mut table = Table::new(NUMBER_OF_PLAYERS);
     table.flop = None;
-    assert_eq!(table.get_flop_string(), "None");
+    let string_value = table.get_flop_string().to_string();
+    assert_eq!(string_value, "[\"None\"]");
 }
 
 #[test]
 fn test_flop_string_secret() {
     const NUMBER_OF_PLAYERS: usize = 23;
     let mut table = Table::new(NUMBER_OF_PLAYERS);
-    assert_eq!(table.get_flop_string_secret(), "Hidden");
+    assert_eq!(table.get_flop_string_secret().to_string(), "[\"Hidden\"]");
     table.table_state = Flop;
     assert!(!table.get_flop_string_secret().contains("Hidden"));
     table.flop = None;
-    assert_eq!(table.get_flop_string_secret(), "None");
+    assert_eq!(table.get_flop_string_secret().to_string(), "[\"None\"]");
 }
 
 #[test]
