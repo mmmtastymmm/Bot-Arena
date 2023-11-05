@@ -11,6 +11,10 @@ jobs:
       - name: docker-build
         run: |
           BRANCH_NAME=${GITHUB_REF_NAME//\//_} # Replace slashes with underscores
-          docker build -f docker/server.Dockerfile -t mmmtastymmm/bot-arena:latest --target=release .
+          docker build -f docker/server.Dockerfile -t mmmtastymmm/bot-arena:$BRANCH_NAME --target=release .
           docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-          docker push mmmtastymmm/bot-arena:latest
+          docker push mmmtastymmm/bot-arena:$BRANCH_NAME
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            docker tag mmmtastymmm/bot-arena:main mmmtastymmm/bot-arena:latest
+            docker push mmmtastymmm/bot-arena:latest
+          fi
