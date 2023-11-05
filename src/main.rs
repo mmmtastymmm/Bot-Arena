@@ -16,6 +16,7 @@ mod args;
 mod bet_stage;
 mod card_expansion;
 mod engine;
+mod example_bots;
 mod globals;
 mod log_setup;
 mod player_components;
@@ -83,7 +84,7 @@ mod tests {
         assert_eq!(main_result.err().unwrap(), ERROR_CODE_NO_SUBS);
     }
 
-    async fn subscribe_and_take_random_action(port: i32, id: i32) {
+    async fn subscribe_and_take_fold_via_incorrect_api_usage(port: i32, id: i32) {
         let url = Url::parse(format!("ws://0.0.0.0:{}", port).as_str()).unwrap();
         info!("Worker {} connecting to {}", id, url);
         let (ws_stream, _) = connect_async(url).await.unwrap();
@@ -131,7 +132,7 @@ mod tests {
 
         for i in 0..3 {
             let handle = tokio::task::spawn(async move {
-                subscribe_and_take_random_action(PORT_TEST_NUMBER, i).await
+                subscribe_and_take_fold_via_incorrect_api_usage(PORT_TEST_NUMBER, i).await
             });
 
             handles.push(handle);
