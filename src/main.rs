@@ -109,10 +109,7 @@ mod tests {
             match message {
                 Ok(message) => {
                     if message.is_text() || message.is_binary() {
-                        info!(
-                            "Received the following message in worker {id}: {:?}",
-                            message
-                        );
+                        info!("Received a message in worker {id}");
                         let send_result = write.send(Message::Text(String::from("hi"))).await;
                         match send_result {
                             Ok(_) => {
