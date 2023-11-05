@@ -1,6 +1,6 @@
 use poker::{Card, Suit};
 
-trait CardPrinting {
+pub trait CardPrinting {
     fn to_ascii_string(&self) -> String;
 }
 

@@ -493,12 +493,12 @@ pub fn test_print_fold_and_active_players() {
 }
 
 #[test]
-pub fn check_only_one_hand_returned_with_string() {
+pub fn check_correct_number_of_lists_present() {
     let mut table = Table::new(23);
     table.deal();
-    let json_string = table.get_state_json_for_player(0).to_string();
-    // Three open brackets, one for the player list and 2 for each open card bracket.
-    assert_eq!(json_string.matches('[').count(), 3);
+    let json_string = table.get_table_state_json_for_player(0).to_string();
+    // 4 open brackets, 1 for the player list, 1 for the card list, 1 for actions, 1 for previous actions
+    assert_eq!(json_string.matches('[').count(), 4);
 }
 
 #[test]

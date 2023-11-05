@@ -2,9 +2,10 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
 
-use json::{object, JsonValue};
+use json::{array, object, JsonValue};
 use poker::Card;
 
+use crate::card_expansion::CardPrinting;
 use crate::player_components::PlayerState::{Active, Folded};
 
 pub const DEFAULT_START_MONEY: i32 = 500;
@@ -51,7 +52,7 @@ impl PlayerState {
     }
 
     /// Gets the json version of the player without revealing cards
-    pub fn as_json_no_secret_data(&self) -> JsonValue {
+    pub fn as_json_without_secret_data(&self) -> JsonValue {
         match self {
             Folded => {
                 object!(state_type: "folded", details: object! ())
@@ -69,15 +70,25 @@ impl PlayerState {
         }
     }
 
-    pub fn get_cards_string(&self) -> String {
-        match &self {
-            PlayerState::Folded => "None",
-            PlayerState::Active(active) => {
-                // active.hand
-                ""
+    pub fn get_cards_json(&self) -> JsonValue {
+        match self {
+            Folded => {
+                array!["None"]
+            }
+            Active(active) => {
+                array![
+                    active.hand[0].to_ascii_string(),
+                    active.hand[1].to_ascii_string()
+                ]
             }
         }
-        .to_string()
+    }
+
+    pub fn get_bet(&self) -> Option<i32> {
+        match self {
+            Folded => None,
+            Active(active) => Some(active.current_bet),
+        }
     }
 }
 
@@ -190,7 +201,7 @@ impl Player {
 
     /// Makes a json object that holds the data in the player but no secret data (cards)
     pub fn as_json_no_secret_data(&self) -> JsonValue {
-        object!(id: self.id, player_state: self.player_state.as_json_no_secret_data(), total_money: self.total_money)
+        object!(id: self.id, player_state: self.player_state.as_json_without_secret_data(), total_money: self.total_money)
     }
 }
 

@@ -493,21 +493,32 @@ impl Table {
     }
 
     pub fn get_state_json_for_current_player(&self) -> JsonValue {
-        self.get_state_json_for_player(self.get_current_player_index() as i8)
+        self.get_table_state_json_for_player(self.get_current_player_index() as i8)
     }
 
-    pub fn get_state_json_for_player(&self, id: i8) -> JsonValue {
-        let player_strings: Vec<_> = self.players.iter().map(|x| x.as_json()).collect();
-        let cards_string = {};
+    pub fn get_vec_of_strings_from_actions(actions: &[TableAction]) -> Vec<String> {
+        actions.iter().map(|x| x.to_string()).collect()
+    }
+
+    pub fn get_table_state_json_for_player(&self, id: i8) -> JsonValue {
+        let player_strings: Vec<_> = self
+            .players
+            .iter()
+            .map(|x| x.as_json_no_secret_data())
+            .collect();
         object! {
             id: id,
-            current_bet: "",
+            current_bet: self.get_current_player().player_state.get_bet(),
+            cards: self.get_current_player().player_state.get_cards_json(),
+            hand_number: self.hand_number,
+            current_highest_bet: self.get_largest_active_bet(),
             flop: self.get_flop_string_secret(),
             turn: self.get_turn_string_secret(),
             river: self.get_river_string_secret(),
             dealer_button_index: self.dealer_button_index,
             players: player_strings,
-            hand_number: self.hand_number,
+            actions: Table::get_vec_of_strings_from_actions(&self.round_actions),
+            previous_actions: Table::get_vec_of_strings_from_actions(&self.previous_round_actions),
         }
     }
     fn is_betting_over(&self) -> bool {
