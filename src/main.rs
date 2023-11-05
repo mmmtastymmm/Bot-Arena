@@ -7,7 +7,7 @@ use std::time::Duration;
 use clap::Parser;
 use env_logger::Env;
 
-use crate::args::BotArgs;
+use crate::args::{validate_bot_args, BotArgs};
 use crate::engine::Engine;
 use crate::server::Server;
 
@@ -23,6 +23,7 @@ mod server;
 mod table;
 
 const ERROR_CODE_NO_SUBS: i32 = 1;
+const ERROR_CODE_BAD_INPUT: i32 = 2;
 
 #[tokio::main]
 async fn main() -> Result<(), i32> {
@@ -30,6 +31,11 @@ async fn main() -> Result<(), i32> {
 }
 
 async fn main_result(args: BotArgs) -> Result<(), i32> {
+    validate_bot_args(&args).map_err(|error| {
+        error!("Arg validation error: {error}");
+        ERROR_CODE_BAD_INPUT
+    })?;
+
     let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
 
     let mut engine = Engine::new(
@@ -69,6 +75,8 @@ mod tests {
         let main_result = main_result(BotArgs {
             port: 10100,
             server_connection_time_seconds: 0.0002,
+            n_call_bots: 0,
+            n_random_bots: 0,
         })
         .await;
         assert!(main_result.is_err());
@@ -113,6 +121,8 @@ mod tests {
             main_result(BotArgs {
                 port: PORT_TEST_NUMBER,
                 server_connection_time_seconds: 10.0,
+                n_call_bots: 0,
+                n_random_bots: 0,
             })
             .await
         });

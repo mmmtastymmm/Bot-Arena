@@ -6,16 +6,35 @@ pub struct BotArgs {
     // The port to listen to
     #[arg(short, long, default_value_t = 10100)]
     pub port: i32,
+
     // How long to wait to accept connections
     #[arg(short, long, default_value_t = 30.0)]
     pub server_connection_time_seconds: f64,
+
+    // Number of calls for call-bot
+    #[arg(short = 'c', long, default_value_t = 0)]
+    pub n_call_bots: usize,
+
+    // Number of operations for random-bot
+    #[arg(short = 'r', long, default_value_t = 0)]
+    pub n_random_bots: usize,
+}
+
+// Validation function to ensure the sum of call-bot and random-bot is less than 23
+pub fn validate_bot_args(args: &BotArgs) -> Result<(), String> {
+    let sum = args.n_call_bots + args.n_random_bots;
+    if sum >= 23 {
+        Err("The sum of call-bot and random-bot must be less than 23".to_string())
+    } else {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use clap::Parser;
 
-    use crate::args::BotArgs;
+    use crate::args::{validate_bot_args, BotArgs};
 
     #[test]
     fn test_defaults() {
@@ -34,5 +53,14 @@ mod tests {
     fn test_custom_connection_time() {
         let args = BotArgs::parse_from(vec!["test", "--server-connection-time-seconds", "45.0"]);
         assert_eq!(args.server_connection_time_seconds, 45.0);
+    }
+
+    #[test]
+    fn test_bot_args_sum() {
+        let args =
+            BotArgs::parse_from(vec!["test", "--n-call-bots", "11", "--n-random-bots", "12"]);
+
+        // The sum should be valid and less than 23
+        assert!(validate_bot_args(&args).is_err());
     }
 }
