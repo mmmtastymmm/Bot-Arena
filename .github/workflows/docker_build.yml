@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     container: "docker:dind"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: docker-build
         run: |
           BRANCH_NAME=${GITHUB_REF_NAME//\//_} # Replace slashes with underscores
