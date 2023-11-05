@@ -9,6 +9,7 @@ use env_logger::Env;
 
 use crate::args::{validate_bot_args, BotArgs};
 use crate::engine::Engine;
+use crate::example_bots::{subscribe_and_take_call_action, subscribe_and_take_random_action};
 use crate::server::Server;
 
 mod actions;
@@ -38,22 +39,43 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
     })?;
 
     let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
-
-    let mut engine = Engine::new(
+    // Start the engine
+    let engine_future = Engine::new(
         Server::from_server_url(
             format!("0.0.0.0:{}", args.port).as_str(),
             Duration::from_nanos((args.server_connection_time_seconds * 1e9) as u64),
         )
         .await,
         Duration::from_nanos(1),
-    )
-    .await
-    .map_err(|error| {
+    );
+    // Start any test bots
+    let mut call_bot_futures = vec![];
+    for id in 0..args.n_call_bots {
+        call_bot_futures.push(subscribe_and_take_call_action(args.port, id));
+    }
+    let mut random_bot_futures = vec![];
+    for id in 0..args.n_random_bots {
+        random_bot_futures.push(subscribe_and_take_random_action(args.port, id));
+    }
+
+    // Wait for the engine to finish accepting connections
+    let mut engine = engine_future.await.map_err(|error| {
         let error_string = format!("Couldn't init server due to the following error: {}", error);
         error!("{error_string}");
         ERROR_CODE_NO_SUBS
     })?;
+    // Play the game
     engine.play_game().await;
+    for (index, bot_future) in call_bot_futures.into_iter().enumerate() {
+        info!("Waiting for call bot with id {index}");
+        bot_future.await;
+        info!("Bot {index} finished");
+    }
+    for (index, bot_future) in random_bot_futures.into_iter().enumerate() {
+        info!("Waiting for random bot with id {index}");
+        bot_future.await;
+        info!("Bot {index} finished");
+    }
     Ok(())
 }
 
