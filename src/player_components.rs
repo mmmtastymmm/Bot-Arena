@@ -214,6 +214,28 @@ mod tests {
     use crate::player_components::{ActiveState, Player, PlayerState, DEFAULT_START_MONEY};
 
     #[test]
+    fn test_state_json_folded() {
+        let json = Player::new(0).player_state.get_cards_json();
+        assert_eq!(json.len(), 1);
+        assert_eq!(json[0], "None");
+    }
+
+    #[test]
+    fn test_state_json_active() {
+        let json = {
+            let mut player = Player::new(0);
+            player.deal([
+                Card::new(Rank::Ace, Suit::Clubs),
+                Card::new(Rank::Ace, Suit::Hearts),
+            ]);
+            player.player_state.get_cards_json()
+        };
+        assert_eq!(json.len(), 2);
+        assert_eq!(json[0], "AC");
+        assert_eq!(json[1], "AH");
+    }
+
+    #[test]
     fn test_player_deal() {
         const BET_AMOUNT: i32 = DEFAULT_START_MONEY / 2;
         let mut player = Player::new(0);
