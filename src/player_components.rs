@@ -236,6 +236,11 @@ mod tests {
     }
 
     #[test]
+    fn check_folded_bet() {
+        assert_eq!(None, Player::new(0).player_state.get_bet())
+    }
+
+    #[test]
     fn test_player_deal() {
         const BET_AMOUNT: i32 = DEFAULT_START_MONEY / 2;
         let mut player = Player::new(0);
