@@ -8,7 +8,6 @@ use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-use crate::log_setup::enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
 use crate::table::{Table, TableAction};
 
@@ -724,7 +723,6 @@ fn test_api_reasonable(table: &Table) {
 
 #[test]
 fn test_rounds_with_some_folding() {
-    enable_logging_in_test();
     const NUMBER_OF_PLAYERS: usize = 23;
     for round_number in 0..25 {
         info!("Starting round: {round_number}");

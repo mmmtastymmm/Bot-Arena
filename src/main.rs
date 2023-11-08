@@ -101,7 +101,6 @@ mod tests {
     use url::Url;
 
     use crate::args::BotArgs;
-    use crate::log_setup::enable_logging_in_test;
     use crate::{main_result, ERROR_CODE_NO_SUBS};
 
     #[tokio::test]
@@ -149,7 +148,6 @@ mod tests {
 
     #[tokio::test]
     async fn check_main_with_subs() {
-        enable_logging_in_test();
         const PORT_TEST_NUMBER: i32 = 10101;
 
         let main_result = tokio::task::spawn(async move {

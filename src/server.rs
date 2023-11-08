@@ -72,12 +72,10 @@ mod tests {
     use tokio_tungstenite::connect_async;
     use url::Url;
 
-    use crate::log_setup::enable_logging_in_test;
     use crate::server::Server;
 
     #[tokio::test]
     async fn test_server_acceptance_window() {
-        enable_logging_in_test();
         // Use a local address for the testing
         const ADDRESS: &str = "127.0.0.1:8088";
         let server_url = ADDRESS.to_string();
