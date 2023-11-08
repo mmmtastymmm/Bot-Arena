@@ -730,6 +730,8 @@ fn test_rounds_with_some_folding() {
         test_api_reasonable(&table);
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
+        let mut previous_dealer_index = None;
+        let mut previous_round_number = None;
         for _ in 0..1000000 {
             if table.is_game_over() {
                 // Make sure dealing also doesn't enable the game
@@ -739,6 +741,11 @@ fn test_rounds_with_some_folding() {
                 table.take_action(HandAction::Call);
                 assert!(table.is_game_over());
                 break;
+            }
+            if previous_round_number != Some(table.hand_number) {
+                previous_round_number = Some(table.hand_number);
+                assert_ne!(previous_dealer_index, Some(table.dealer_button_index));
+                previous_dealer_index = Some(table.dealer_button_index);
             }
             assert!(table.get_current_player_mut().player_state.is_active());
             let mut rng = thread_rng();
