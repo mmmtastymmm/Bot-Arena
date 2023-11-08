@@ -16,8 +16,8 @@ use crate::player_components::{ActiveState, Player, PlayerState};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct DealInformation {
-    round_number: i32,
-    dealer_button_index: usize,
+    pub round_number: i32,
+    pub dealer_button_index: usize,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -34,7 +34,7 @@ impl fmt::Display for DealInformation {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Hand number: {}, Dealer index: {}",
+            "hand number: {}, dealer index: {}",
             self.round_number, self.dealer_button_index
         )
     }
@@ -438,7 +438,7 @@ impl Table {
         for _ in 0..self.players.len() {
             // set the next dealer index by finding the next alive player
             self.dealer_button_index += 1;
-            if self.dealer_button_index + 1 >= self.get_player_count() {
+            if self.dealer_button_index >= self.get_player_count() {
                 self.dealer_button_index = 0;
             }
             if self
