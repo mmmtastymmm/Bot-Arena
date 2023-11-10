@@ -9,7 +9,10 @@ use env_logger::Env;
 
 use crate::args::{validate_bot_args, BotArgs};
 use crate::engine::Engine;
-use crate::example_bots::{subscribe_and_take_call_action, subscribe_and_take_random_action};
+use crate::example_bots::{
+    subscribe_and_take_call_action, subscribe_and_take_fold_via_incorrect_api_usage,
+    subscribe_and_take_random_action,
+};
 use crate::server::Server;
 
 mod actions;
@@ -33,12 +36,12 @@ async fn main() -> Result<(), i32> {
 }
 
 async fn main_result(args: BotArgs) -> Result<(), i32> {
+    let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
+
     validate_bot_args(&args).map_err(|error| {
         error!("Arg validation error: {error}");
         ERROR_CODE_BAD_INPUT
     })?;
-
-    let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
 
     // Start any test bots
     let mut bot_futures = vec![];
@@ -52,6 +55,12 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
             tokio::task::spawn(
                 async move { subscribe_and_take_random_action(args.port, id).await },
             );
+        bot_futures.push(result);
+    }
+    for id in 0..args.n_fail_bots {
+        let result = tokio::task::spawn(async move {
+            subscribe_and_take_fold_via_incorrect_api_usage(args.port, id).await
+        });
         bot_futures.push(result);
     }
 
@@ -127,6 +136,43 @@ mod tests {
                 n_call_bots: 0,
                 n_random_bots: 0,
                 n_fail_bots: 0,
+            })
+            .await
+        });
+
+        let mut handles = vec![];
+
+        for i in 0..3 {
+            let handle = tokio::task::spawn(async move {
+                subscribe_and_take_fold_via_incorrect_api_usage(PORT_TEST_NUMBER, i).await
+            });
+
+            handles.push(handle);
+        }
+
+        tokio::time::sleep(Duration::from_secs(10)).await;
+
+        let result = main_result.await.expect("Main result ended ok");
+        assert!(result.is_ok());
+
+        // Wait for all tasks to complete
+        for handle in handles {
+            handle.await.expect("Worker ended ok");
+        }
+    }
+
+    #[tokio::test]
+    async fn check_main_with_all_bots() {
+        enable_logging_in_test();
+        const PORT_TEST_NUMBER: i32 = 10102;
+
+        let main_result = tokio::task::spawn(async move {
+            main_result(BotArgs {
+                port: PORT_TEST_NUMBER,
+                server_connection_time_seconds: 10.0,
+                n_call_bots: 7,
+                n_random_bots: 7,
+                n_fail_bots: 7,
             })
             .await
         });

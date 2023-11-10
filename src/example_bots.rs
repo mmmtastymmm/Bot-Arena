@@ -6,7 +6,7 @@ use tokio_tungstenite::tungstenite::Message;
 use url::Url;
 
 pub async fn subscribe_and_take_fold_via_incorrect_api_usage(port: i32, id: usize) {
-    subscribe_and_take_action(port, id, "Incorrect Bot", || String::from("hi")).await;
+    subscribe_and_take_action(port, id, "Fail Bot", || String::from("hi")).await;
 }
 
 pub async fn subscribe_and_take_call_action(port: i32, id: usize) {

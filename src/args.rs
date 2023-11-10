@@ -28,7 +28,7 @@ pub struct BotArgs {
 pub fn validate_bot_args(args: &BotArgs) -> Result<(), String> {
     let sum = args.n_call_bots + args.n_random_bots + args.n_fail_bots;
     if sum >= 23 {
-        Err("The sum of call-bot and random-bot must be less than 23".to_string())
+        Err("The sum of all bots must be less than 23".to_string())
     } else {
         Ok(())
     }
