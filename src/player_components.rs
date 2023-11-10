@@ -2,9 +2,10 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
 
-use json::{object, JsonValue};
+use json::{array, object, JsonValue};
 use poker::Card;
 
+use crate::card_expansion::CardPrinting;
 use crate::player_components::PlayerState::{Active, Folded};
 
 pub const DEFAULT_START_MONEY: i32 = 500;
@@ -45,13 +46,13 @@ impl PlayerState {
                 object!(state_type: "folded", details: object! ())
             }
             Active(a) => {
-                object!(state_type: "active", details: object!(hand: format!("{} {}", a.hand[0], a.hand[1]), bet: a.current_bet))
+                object!(state_type: "active", details: object!(hand: array![a.hand[0].to_ascii_string(), a.hand[1].to_ascii_string()], bet: a.current_bet))
             }
         }
     }
 
     /// Gets the json version of the player without revealing cards
-    pub fn as_json_no_secret_data(&self) -> JsonValue {
+    pub fn as_json_without_secret_data(&self) -> JsonValue {
         match self {
             Folded => {
                 object!(state_type: "folded", details: object! ())
@@ -61,13 +62,32 @@ impl PlayerState {
             }
         }
     }
-}
 
-impl PlayerState {
     pub fn is_active(&self) -> bool {
         match self {
             Folded => false,
             Active(_) => true,
+        }
+    }
+
+    pub fn get_cards_json(&self) -> JsonValue {
+        match self {
+            Folded => {
+                array!["None"]
+            }
+            Active(active) => {
+                array![
+                    active.hand[0].to_ascii_string(),
+                    active.hand[1].to_ascii_string()
+                ]
+            }
+        }
+    }
+
+    pub fn get_bet(&self) -> Option<i32> {
+        match self {
+            Folded => None,
+            Active(active) => Some(active.current_bet),
         }
     }
 }
@@ -176,12 +196,12 @@ impl Player {
 
     /// Makes a json object that holds the data in the player (all including cards)
     pub fn as_json(&self) -> JsonValue {
-        object!(player: object! (player_state: self.player_state.as_json(), id: self.id, total_money: self.total_money))
+        object!(id: self.id, player_state: self.player_state.as_json(), total_money: self.total_money)
     }
 
     /// Makes a json object that holds the data in the player but no secret data (cards)
     pub fn as_json_no_secret_data(&self) -> JsonValue {
-        object!(player: object! (player_state: self.player_state.as_json_no_secret_data(), id: self.id, total_money: self.total_money))
+        object!(id: self.id, player_state: self.player_state.as_json_without_secret_data(), total_money: self.total_money)
     }
 }
 
@@ -192,6 +212,33 @@ mod tests {
     use rand::thread_rng;
 
     use crate::player_components::{ActiveState, Player, PlayerState, DEFAULT_START_MONEY};
+
+    #[test]
+    fn test_state_json_folded() {
+        let json = Player::new(0).player_state.get_cards_json();
+        assert_eq!(json.len(), 1);
+        assert_eq!(json[0], "None");
+    }
+
+    #[test]
+    fn test_state_json_active() {
+        let json = {
+            let mut player = Player::new(0);
+            player.deal([
+                Card::new(Rank::Ace, Suit::Clubs),
+                Card::new(Rank::Ace, Suit::Hearts),
+            ]);
+            player.player_state.get_cards_json()
+        };
+        assert_eq!(json.len(), 2);
+        assert_eq!(json[0], "AC");
+        assert_eq!(json[1], "AH");
+    }
+
+    #[test]
+    fn check_folded_bet() {
+        assert_eq!(None, Player::new(0).player_state.get_bet())
+    }
 
     #[test]
     fn test_player_deal() {
@@ -336,7 +383,7 @@ mod tests {
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
             json::parse(
-                "{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":30}}"
+                "{\"state_type\":\"active\",\"details\":{\"hand\":[\"AC\", \"AH\"],\"bet\":30}}"
             )
             .unwrap()
         )
@@ -365,7 +412,7 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":\"[ A♣ ] [ A♥ ]\",\"bet\":500}},\"id\":0,\"total_money\":0}}").unwrap())
+            json::parse("{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":[ \"AC\", \"AH\" ],\"bet\":500}},\"id\":0,\"total_money\":0}").unwrap())
     }
 
     #[test]
@@ -387,7 +434,7 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"player\":{\"player_state\":{\"state_type\":\"active\",\"details\":{\"bet\":500}},\"id\":0,\"total_money\":0}}").unwrap())
+            json::parse("{\"player_state\":{\"state_type\":\"active\",\"details\":{\"bet\":500}},\"id\":0,\"total_money\":0}").unwrap())
     }
 
     #[test]
@@ -436,10 +483,7 @@ mod tests {
         // Get the secret json version
         let secret_player_json = player1.as_json_no_secret_data();
         // Make sure it is folded
-        assert_eq!(
-            secret_player_json["player"]["player_state"]["state_type"],
-            "folded"
-        );
+        assert_eq!(secret_player_json["player_state"]["state_type"], "folded");
         // Make sure there are no cards in the json
         let player_string = secret_player_json.to_string();
         let cards = Card::generate_deck();

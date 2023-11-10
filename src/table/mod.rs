@@ -4,12 +4,14 @@ use std::fmt::Formatter;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use json::{object, JsonValue};
+use json::{array, object, stringify_pretty, JsonValue};
 use poker::{Card, Evaluator};
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
+use crate::card_expansion::CardPrinting;
+use crate::globals::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -72,7 +74,7 @@ pub struct Table {
     dealer_button_index: usize,
     /// The size of the ante
     ante: i32,
-    /// How many hands have been played so far
+    /// How many hands have been played so far 1 INDEXED (not zero)
     hand_number: i32,
     /// Whose turn it is right now
     current_player_index: usize,
@@ -106,7 +108,7 @@ impl fmt::Display for Table {
 impl Table {
     const ANTE_INCREASE_AMOUNT: i32 = 1;
     /// Makes a table of with the specified number of players.
-    pub fn new(number_of_players: usize, evaluator: Arc<Evaluator>) -> Self {
+    pub fn new(number_of_players: usize) -> Self {
         if number_of_players > 23 {
             panic!("Too many players for one table!")
         }
@@ -117,7 +119,7 @@ impl Table {
         let initial_index = number_of_players - 1;
         let mut table = Table {
             players,
-            evaluator,
+            evaluator: SHARED_EVALUATOR.clone(),
             flop: None,
             turn: None,
             river: None,
@@ -157,66 +159,74 @@ impl Table {
         round_string
     }
 
-    /// Translates the flop into a human readable string
-    pub fn get_flop_string(&self) -> String {
-        match self.flop {
-            None => "None".to_string(),
-            Some(cards) => {
-                format!("{} {} {}", cards[0], cards[1], cards[2])
-            }
-        }
-    }
-
     pub fn get_current_player_index(&self) -> usize {
         self.current_player_index
     }
 
-    /// Translates the flop into a human readable string
-    pub fn get_flop_string_secret(&self) -> String {
+    /// Translates the flop into json
+    pub fn get_flop_string(&self) -> JsonValue {
         match self.flop {
-            None => "None".to_string(),
+            None => array!["None"],
+            Some(cards) => {
+                array![
+                    cards[0].to_ascii_string(),
+                    cards[1].to_ascii_string(),
+                    cards[2].to_ascii_string()
+                ]
+            }
+        }
+    }
+
+    /// Translates the flop into a human readable string
+    pub fn get_flop_string_secret(&self) -> JsonValue {
+        match self.flop {
+            None => array!["None"],
             Some(cards) => match &self.table_state {
-                PreFlop => "Hidden".to_string(),
+                PreFlop => array!["Hidden"],
                 _ => {
-                    format!("{} {} {}", cards[0], cards[1], cards[2])
+                    array![
+                        cards[0].to_ascii_string(),
+                        cards[1].to_ascii_string(),
+                        cards[2].to_ascii_string()
+                    ]
                 }
             },
         }
     }
 
     /// Translates the turn into a human readable string
-    pub fn get_turn_string(&self) -> String {
+    pub fn get_turn_string(&self) -> JsonValue {
         match self.turn {
-            None => "None".to_string(),
-            Some(card) => card.to_string(),
+            None => "None".into(),
+            Some(card) => card.to_ascii_string().into(),
         }
     }
 
-    pub fn get_turn_string_secret(&self) -> String {
+    pub fn get_turn_string_secret(&self) -> JsonValue {
         match self.turn {
-            None => "None".to_string(),
+            None => "None".into(),
             Some(card) => match &self.table_state {
-                PreFlop => "Hidden".to_string(),
-                Flop => "Hidden".to_string(),
-                _ => card.to_string(),
+                PreFlop => "Hidden".into(),
+                Flop => "Hidden".into(),
+                _ => card.to_ascii_string().into(),
             },
         }
     }
 
     /// Translates the river into a human readable string
-    pub fn get_river_string(&self) -> String {
+    pub fn get_river_string(&self) -> JsonValue {
         match self.river {
-            None => "None".to_string(),
-            Some(card) => card.to_string(),
+            None => "None".into(),
+            Some(card) => card.to_ascii_string().into(),
         }
     }
 
-    pub fn get_river_string_secret(&self) -> String {
+    pub fn get_river_string_secret(&self) -> JsonValue {
         match self.river {
-            None => "None".to_string(),
+            None => "None".into(),
             Some(card) => match &self.table_state {
-                River => card.to_string(),
-                _ => "Hidden".to_string(),
+                River => card.to_ascii_string().into(),
+                _ => "Hidden".into(),
             },
         }
     }
@@ -237,7 +247,7 @@ impl Table {
             return;
         }
         // Make sure the current player is active, or panic and end the program
-        if let PlayerState::Active(active) = self.get_current_player().player_state {
+        if let PlayerState::Active(active) = self.get_current_player_mut().player_state {
             self.take_provided_action(hand_action, active);
         } else {
             panic!("Tried to take an action on an inactive player");
@@ -278,9 +288,9 @@ impl Table {
         // Now check how to advance the hand
         match hand_action {
             HandAction::Fold => {
-                self.get_current_player().fold();
+                self.get_current_player_mut().fold();
                 let table_action = TableAction::TakePlayerAction(
-                    self.get_current_player().get_id(),
+                    self.get_current_player_mut().get_id(),
                     HandAction::Fold,
                 );
                 self.round_actions.push(table_action);
@@ -288,27 +298,27 @@ impl Table {
             HandAction::Check => {
                 // All in already, so stay all in
                 if difference == 0 {
-                    self.get_current_player().bet(0);
+                    self.get_current_player_mut().bet(0);
                     let table_action = TableAction::TakePlayerAction(
-                        self.get_current_player().get_id(),
+                        self.get_current_player_mut().get_id(),
                         HandAction::Check,
                     );
                     self.round_actions.push(table_action);
                 } else {
-                    self.get_current_player().fold();
+                    self.get_current_player_mut().fold();
                     let table_action = TableAction::TakePlayerAction(
-                        self.get_current_player().get_id(),
+                        self.get_current_player_mut().get_id(),
                         HandAction::Fold,
                     );
                     self.round_actions.push(table_action);
                 }
             }
             HandAction::Call => {
-                let bet_amount = self.get_current_player().bet(difference);
-                let index = self.get_current_player().get_id() as usize;
+                let bet_amount = self.get_current_player_mut().bet(difference);
+                let index = self.get_current_player_mut().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
                 let table_action = TableAction::TakePlayerAction(
-                    self.get_current_player().get_id(),
+                    self.get_current_player_mut().get_id(),
                     HandAction::Call,
                 );
                 self.round_actions.push(table_action);
@@ -317,11 +327,11 @@ impl Table {
                 // Ensure the bet isn't larger than the pot limit (pot + amount required to call)
                 let acceptable_bet =
                     min(raise_amount + difference, self.get_pot_size() + difference);
-                let bet_amount = self.get_current_player().bet(acceptable_bet);
-                let index = self.get_current_player().get_id() as usize;
+                let bet_amount = self.get_current_player_mut().bet(acceptable_bet);
+                let index = self.get_current_player_mut().get_id() as usize;
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
                 let table_action = TableAction::TakePlayerAction(
-                    self.get_current_player().get_id(),
+                    self.get_current_player_mut().get_id(),
                     HandAction::Raise(bet_amount),
                 );
                 self.round_actions.push(table_action);
@@ -356,16 +366,6 @@ impl Table {
             result_string += &Table::get_player_result_string(player, &rank);
         }
         result_string
-    }
-
-    /// Cleans all the cards from the table
-    pub fn clean_table(&mut self) {
-        self.flop = None;
-        self.turn = None;
-        self.river = None;
-        for player in &mut self.players {
-            player.fold();
-        }
     }
 
     pub fn is_game_over(&self) -> bool {
@@ -437,21 +437,21 @@ impl Table {
                 self.current_player_index = 0;
             }
             // An all in player is no longer can take actions so skip them as well
-            if self.get_current_player().total_money == 0 {
+            if self.get_current_player_mut().total_money == 0 {
                 continue;
             }
             // If the player is active while also not all in they are the next active player
-            match self.get_current_player().player_state {
+            match self.get_current_player_mut().player_state {
                 PlayerState::Folded => {}
                 PlayerState::Active(_) => {
                     break;
                 }
             }
         }
-        if !self.get_current_player().is_alive() {
+        if !self.get_current_player_mut().is_alive() {
             panic!("Current player not alive after update!")
         }
-        match self.get_current_player().player_state {
+        match self.get_current_player_mut().player_state {
             PlayerState::Folded => {
                 panic!("Current player not active after update")
             }
@@ -497,25 +497,37 @@ impl Table {
         }
     }
 
-    pub fn get_state_string_for_player(&self, id: i8) -> JsonValue {
+    pub fn get_state_string_for_current_player(&self) -> String {
+        stringify_pretty(self.get_state_json_for_current_player(), 4)
+    }
+
+    pub fn get_state_json_for_current_player(&self) -> JsonValue {
+        self.get_table_state_json_for_player(self.get_current_player_index() as i8)
+    }
+
+    pub fn get_vec_of_strings_from_actions(actions: &[TableAction]) -> Vec<String> {
+        actions.iter().map(|x| x.to_string()).collect()
+    }
+
+    pub fn get_table_state_json_for_player(&self, id: i8) -> JsonValue {
         let player_strings: Vec<_> = self
             .players
             .iter()
-            .map(|x| {
-                if x.get_id() == id {
-                    x.as_json()
-                } else {
-                    x.as_json_no_secret_data()
-                }
-            })
+            .map(|x| x.as_json_no_secret_data())
             .collect();
         object! {
+            id: id,
+            current_bet: self.get_current_player().player_state.get_bet(),
+            cards: self.get_current_player().player_state.get_cards_json(),
+            hand_number: self.hand_number,
+            current_highest_bet: self.get_largest_active_bet(),
             flop: self.get_flop_string_secret(),
             turn: self.get_turn_string_secret(),
             river: self.get_river_string_secret(),
             dealer_button_index: self.dealer_button_index,
             players: player_strings,
-            hand_number: self.hand_number,
+            actions: Table::get_vec_of_strings_from_actions(&self.round_actions),
+            previous_actions: Table::get_vec_of_strings_from_actions(&self.previous_round_actions),
         }
     }
     fn is_betting_over(&self) -> bool {
@@ -697,8 +709,12 @@ impl Table {
         }
     }
 
-    fn get_current_player(&mut self) -> &mut Player {
+    fn get_current_player_mut(&mut self) -> &mut Player {
         self.players.get_mut(self.current_player_index).unwrap()
+    }
+
+    fn get_current_player(&self) -> &Player {
+        self.players.get(self.current_player_index).unwrap()
     }
 
     pub fn compare_players(

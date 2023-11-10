@@ -8,13 +8,12 @@ use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-use crate::globals::SHARED_EVALUATOR;
 use crate::log_setup::enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
 use crate::table::{Table, TableAction};
 
 fn deal_test_cards() -> Table {
-    let mut table = Table::new(6, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(6);
     // After the deal set the cards to known values
     table.flop = Some([
         Card::new(poker::Rank::Ten, poker::Suit::Spades),
@@ -78,7 +77,7 @@ fn deal_test_cards_tied_best() -> Table {
 }
 
 fn two_sets_of_ties() -> Table {
-    let mut table = Table::new(6, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(6);
     // After the deal set the cards to known values
     table.flop = Some([
         Card::new(poker::Rank::Ten, poker::Suit::Spades),
@@ -137,6 +136,14 @@ pub fn check_table_has_right_amount(table: &Table) {
     let pot_size = table.get_pot_size();
     let table_sum = player_amount + pot_size;
     assert_eq!(table_sum, table.players.len() as i32 * DEFAULT_START_MONEY);
+}
+
+#[test]
+pub fn check_table_string() {
+    let mut table = deal_test_cards();
+    table.deal();
+    let player_string = table.get_state_string_for_current_player();
+    assert!(!player_string.is_empty());
 }
 
 #[test]
@@ -257,9 +264,10 @@ pub fn test_get_bet_increases_amount() {
     }
     let result = Table::get_bet_increases_amount(&players);
     assert_eq!(result[0], 0);
-    for index in 1..10 {
+
+    for (index, &value) in result.iter().enumerate().take(10).skip(1) {
         let i = index as i32;
-        assert_eq!(result[index], i * i - (i - 1) * (i - 1));
+        assert_eq!(value, i * i - (i - 1) * (i - 1));
     }
 }
 
@@ -302,32 +310,32 @@ pub fn two_winners() {
 #[test]
 pub fn test_two_side_pots_with_actions_checked() {
     let mut table = two_sets_of_ties();
-    assert_eq!(table.get_current_player().get_id(), 1);
+    assert_eq!(table.get_current_player_mut().get_id(), 1);
     table.take_action(HandAction::Check);
     assert_eq!(
         *table.round_actions.last().unwrap(),
         TableAction::TakePlayerAction(1_i8, HandAction::Check)
     );
-    assert_eq!(table.get_current_player().get_id(), 2);
+    assert_eq!(table.get_current_player_mut().get_id(), 2);
     table.take_action(HandAction::Raise(1));
     assert_eq!(
         *table.round_actions.last().unwrap(),
         TableAction::TakePlayerAction(2_i8, HandAction::Raise(1))
     );
-    assert_eq!(table.get_current_player().get_id(), 3);
+    assert_eq!(table.get_current_player_mut().get_id(), 3);
     table.take_action(HandAction::Call);
     assert_eq!(
         *table.round_actions.last().unwrap(),
         TableAction::TakePlayerAction(3_i8, HandAction::Call)
     );
-    assert_eq!(table.get_current_player().get_id(), 4);
+    assert_eq!(table.get_current_player_mut().get_id(), 4);
     table.take_action(HandAction::Raise(10));
     // Note: betting 9 is going all in
     assert_eq!(
         *table.round_actions.last().unwrap(),
         TableAction::TakePlayerAction(4_i8, HandAction::Raise(9))
     );
-    assert_eq!(table.get_current_player().get_id(), 5);
+    assert_eq!(table.get_current_player_mut().get_id(), 5);
     table.take_action(HandAction::Call);
     // Now we are in the next stage
     assert_eq!(
@@ -380,7 +388,7 @@ pub fn test_two_side_pots_with_actions_checked() {
 pub fn test_deal_correct_size() {
     // Required for the table evaluator
     const PLAYER_SIZE: usize = 23;
-    let mut table = Table::new(PLAYER_SIZE, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(PLAYER_SIZE);
     // Deal the largest table size allowed
     table.deal();
     // Make read only now
@@ -416,7 +424,7 @@ pub fn test_deal_correct_size() {
 pub fn test_deal_with_dead_players() {
     // Required for the table evaluator
     const PLAYER_SIZE: usize = 23;
-    let mut table = Table::new(PLAYER_SIZE, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(PLAYER_SIZE);
     // Deal the largest table size allowed
     table.players.get_mut(0).unwrap().total_money = 0;
     table.deal();
@@ -434,7 +442,7 @@ pub fn test_deal_with_dead_players() {
 pub fn test_lots_of_deals() {
     // Required for the table evaluator
     const PLAYER_SIZE: usize = 23;
-    let mut table = Table::new(PLAYER_SIZE, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(PLAYER_SIZE);
     // Add a player that will die later, so as to be seen as an alive winner
     table.players.get_mut(0).unwrap().total_money = DEFAULT_START_MONEY * 10;
     // Deal the largest table size allowed until the game is over
@@ -450,18 +458,18 @@ pub fn test_lots_of_deals() {
 #[should_panic]
 pub fn test_deal_too_many_players() {
     // Add to many players and expect a panic
-    let mut table = Table::new(24, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(24);
     table.deal()
 }
 
 #[test]
 pub fn test_print() {
-    let mut table = Table::new(23, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(23);
     table.deal();
     let string = table.to_string();
-    assert!(string.contains("\"flop\":\"["));
-    assert!(string.contains("\"turn\":\"["));
-    assert!(string.contains("\"river\":\"["));
+    assert!(string.contains("\"flop\":["));
+    assert!(string.contains("\"turn\":"));
+    assert!(string.contains("\"river\":"));
     assert!(string.contains("\"dealer_button_index\":"));
     assert!(string.contains("\"hand_number\":"));
     assert!(string.contains("\"players\":["));
@@ -471,12 +479,12 @@ pub fn test_print() {
 
 #[test]
 pub fn test_print_fold_and_active_players() {
-    let mut table = Table::new(23, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(23);
     table.players.get_mut(0).unwrap().fold();
     let string = table.to_string();
-    assert!(string.contains("\"flop\":\"["));
-    assert!(string.contains("\"turn\":\"["));
-    assert!(string.contains("\"river\":\"["));
+    assert!(string.contains("\"flop\":["));
+    assert!(string.contains("\"turn\":"));
+    assert!(string.contains("\"river\":"));
     assert!(string.contains("\"dealer_button_index\":"));
     assert!(string.contains("\"hand_number\":"));
     assert!(string.contains("\"players\":["));
@@ -485,18 +493,18 @@ pub fn test_print_fold_and_active_players() {
 }
 
 #[test]
-pub fn check_only_one_hand_returned_with_string() {
-    let mut table = Table::new(23, SHARED_EVALUATOR.clone());
+pub fn check_correct_number_of_lists_present() {
+    let mut table = Table::new(23);
     table.deal();
-    let json_string = table.get_state_string_for_player(0).to_string();
-    // Three open brackets, one for the player list and 2 for each open card bracket.
-    assert_eq!(json_string.matches('[').count(), 3);
+    let json_string = table.get_table_state_json_for_player(0).to_string();
+    // 5 open brackets, 1 for the player list, 1 for the card list, 1 for the flop, 1 for actions, 1 for previous actions
+    assert_eq!(json_string.matches('[').count(), 5);
 }
 
 #[test]
 pub fn test_results_all_tied() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     table.deal();
     // Get results for for a starting table, which should be all tied
     let results = table.get_results();
@@ -509,19 +517,9 @@ pub fn test_results_all_tied() {
 }
 
 #[test]
-fn test_clean() {
-    const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
-    table.deal();
-    assert!(table.flop.is_some());
-    table.clean_table();
-    assert!(table.flop.is_none());
-}
-
-#[test]
 fn test_players_all_checks() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     table.deal();
     assert_eq!(table.table_state, PreFlop);
     assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
@@ -548,7 +546,7 @@ fn test_players_all_checks() {
 #[test]
 fn test_players_calling() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     table.deal();
     assert_eq!(table.table_state, PreFlop);
     assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
@@ -575,7 +573,7 @@ fn test_players_calling() {
 #[test]
 fn test_everyone_all_in() {
     const NUMBER_OF_PLAYERS: usize = 3;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     assert_eq!(table.table_state, PreFlop);
     table.players.get_mut(1).unwrap().total_money = DEFAULT_START_MONEY / 2;
     table.take_action(HandAction::Check);
@@ -592,7 +590,7 @@ fn test_everyone_all_in() {
 #[test]
 fn test_players_raising_and_calling() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     assert_eq!(table.table_state, PreFlop);
     assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     // Everyone raises by one
@@ -645,7 +643,7 @@ fn test_players_raising_and_calling() {
 #[test]
 fn test_players_raising_over_pot_limit() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     assert_eq!(table.table_state, PreFlop);
     assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
     let mut correct_largest_bet = 1;
@@ -664,7 +662,7 @@ fn test_one_raise_all_checks() {
     const NUMBER_OF_PLAYERS: usize = 23;
     let raise_amounts = vec![1, 2, 3, 4];
     for raise_amount in raise_amounts {
-        let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+        let mut table = Table::new(NUMBER_OF_PLAYERS);
         table.take_action(HandAction::Raise(raise_amount));
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
@@ -682,13 +680,56 @@ fn test_one_raise_all_checks() {
     }
 }
 
+fn test_api_reasonable(table: &Table) {
+    let json = table.get_state_json_for_current_player();
+    let _json_string = json.to_string();
+    // The object is filled out
+    assert_eq!(json.len(), 12);
+    // Id check
+    assert!(json["id"].as_i8().is_some());
+    // Current bet check
+    assert!(json["current_bet"].as_i32().is_some());
+    // Cards check
+    assert_eq!(json["cards"].len(), 2);
+    assert!(json["cards"][0].as_str().is_some());
+    assert!(json["cards"][1].as_str().is_some());
+    // Hand number
+    assert!(json["hand_number"].as_usize().is_some());
+    assert!(json["current_highest_bet"].as_usize().is_some());
+    // Flop
+    let flop = &json["flop"];
+    assert!(flop.len() == 1 || flop.len() == 3);
+    if flop.len() == 1 {
+        assert_eq!(flop[0], "Hidden");
+    }
+    // Turn
+    let turn = &json["turn"].as_str();
+    assert!(turn.is_some());
+    // River
+    let river = &json["river"].as_str();
+    assert!(river.is_some());
+    // Dealer button index
+    assert!(json["dealer_button_index"].as_u8().is_some());
+    // Players
+    assert_eq!(json["players"].len(), table.players.len());
+    // Actions
+    assert!(!json["actions"].is_empty());
+    // Previous actions, empty first hand then should have previous hands
+    if table.hand_number == 1 {
+        assert!(json["previous_actions"].is_empty());
+    } else {
+        assert!(!json["previous_actions"].is_empty());
+    }
+}
+
 #[test]
 fn test_rounds_with_some_folding() {
     enable_logging_in_test();
     const NUMBER_OF_PLAYERS: usize = 23;
     for round_number in 0..25 {
         info!("Starting round: {round_number}");
-        let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+        let mut table = Table::new(NUMBER_OF_PLAYERS);
+        test_api_reasonable(&table);
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         for _ in 0..1000000 {
@@ -701,7 +742,7 @@ fn test_rounds_with_some_folding() {
                 assert!(table.is_game_over());
                 break;
             }
-            assert!(table.get_current_player().player_state.is_active());
+            assert!(table.get_current_player_mut().player_state.is_active());
             let mut rng = thread_rng();
             let action_int = rng.gen_range(0..4);
             match action_int {
@@ -718,26 +759,27 @@ fn test_rounds_with_some_folding() {
 #[test]
 fn test_flop_string() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     table.flop = None;
-    assert_eq!(table.get_flop_string(), "None");
+    let string_value = table.get_flop_string().to_string();
+    assert_eq!(string_value, "[\"None\"]");
 }
 
 #[test]
 fn test_flop_string_secret() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
-    assert_eq!(table.get_flop_string_secret(), "Hidden");
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
+    assert_eq!(table.get_flop_string_secret().to_string(), "[\"Hidden\"]");
     table.table_state = Flop;
     assert!(!table.get_flop_string_secret().contains("Hidden"));
     table.flop = None;
-    assert_eq!(table.get_flop_string_secret(), "None");
+    assert_eq!(table.get_flop_string_secret().to_string(), "[\"None\"]");
 }
 
 #[test]
 fn test_turn_string() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     assert_eq!(table.get_turn_string_secret(), "Hidden");
     table.table_state = Flop;
     assert_eq!(table.get_turn_string_secret(), "Hidden");
@@ -751,7 +793,7 @@ fn test_turn_string() {
 #[test]
 fn test_river_string() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     assert_eq!(table.get_river_string_secret(), "Hidden");
     table.table_state = Flop;
     assert_eq!(table.get_river_string_secret(), "Hidden");
@@ -835,7 +877,7 @@ pub fn test_get_hand_result_folds_in_middle() {
 #[test]
 pub fn test_ante_increase() {
     const NUMBER_OF_PLAYERS: usize = 2;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     for _ in 0..(NUMBER_OF_PLAYERS * 2 - 1) {
         assert_eq!(table.ante, 1);
         table.deal();
@@ -882,7 +924,7 @@ pub fn test_sort_by_bet_amount_reversed() {
 pub fn test_only_unique_cards() {
     const NUMBER_OF_PLAYERS: usize = 23;
     for _ in 0..100000 {
-        let table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+        let table = Table::new(NUMBER_OF_PLAYERS);
         let mut set: HashSet<Card> = HashSet::new();
         set.extend(table.flop.unwrap().iter());
         set.insert(table.turn.unwrap());
@@ -901,7 +943,7 @@ pub fn test_only_unique_cards() {
 #[test]
 pub fn test_only_unique_cards_with_deal() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    let mut table = Table::new(NUMBER_OF_PLAYERS, SHARED_EVALUATOR.clone());
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
     table.ante = 0;
     const ROUNDS: i32 = 100000;
     table.ante_round_increase = ROUNDS;

@@ -1,0 +1,43 @@
+# Ignore typical Rust artifacts
+/target
+**/*.rs.bk
+
+# Ignore version control directories
+.git
+.gitignore
+
+# Ignore temporary files
+**/*.swp
+**/*~
+**/.*.swp
+**/.*.swo
+
+# Ignore all log files
+*.log
+
+# Ignore specific environment files
+.env
+.env.*
+
+# Ignore editor configuration files
+.idea/
+.vscode/
+*.sublime-workspace
+
+# Ignore other non-compiled files
+**/*.md
+**/*.txt
+**/*.pdf
+
+# Ignore all files that are usually not part of the source
+/docker
+Dockerfile*
+*.dockerignore
+*.sh
+!cargo.toml
+!cargo.lock
+
+# Ignore benchmark/test artifacts
+/benches
+/tests
+/examples

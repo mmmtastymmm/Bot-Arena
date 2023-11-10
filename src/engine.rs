@@ -5,7 +5,6 @@ use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::actions::HandAction;
-use crate::globals::SHARED_EVALUATOR;
 use crate::server::Server;
 use crate::table::Table;
 
@@ -22,7 +21,7 @@ impl Engine {
         }
 
         let engine = Engine {
-            table: Table::new(server.connections.len(), SHARED_EVALUATOR.clone()),
+            table: Table::new(server.connections.len()),
             server,
             read_timeout,
         };
@@ -48,9 +47,8 @@ impl Engine {
             }
         };
 
-        let json_state = self.table.get_state_string_for_player(current_index as i8);
-        let table_state_string = json_state.as_str().unwrap_or_default().to_string();
-        let result = connection.send(Message::Text(table_state_string)).await;
+        let state = self.table.get_state_string_for_current_player();
+        let result = connection.send(Message::Text(state)).await;
         match result {
             Ok(_) => {
                 debug!("Ok send to player {current_index}");
