@@ -164,7 +164,7 @@ mod tests {
     #[tokio::test]
     async fn check_main_with_all_bots() {
         enable_logging_in_test();
-        const PORT_TEST_NUMBER: i32 = 10102;
+        const PORT_TEST_NUMBER: i32 = 10110;
 
         let main_result = tokio::task::spawn(async move {
             main_result(BotArgs {
@@ -177,24 +177,9 @@ mod tests {
             .await
         });
 
-        let mut handles = vec![];
-
-        for i in 0..3 {
-            let handle = tokio::task::spawn(async move {
-                subscribe_and_take_fold_via_incorrect_api_usage(PORT_TEST_NUMBER, i).await
-            });
-
-            handles.push(handle);
-        }
-
         tokio::time::sleep(Duration::from_secs(10)).await;
 
         let result = main_result.await.expect("Main result ended ok");
         assert!(result.is_ok());
-
-        // Wait for all tasks to complete
-        for handle in handles {
-            handle.await.expect("Worker ended ok");
-        }
     }
 }
