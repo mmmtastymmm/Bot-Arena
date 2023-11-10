@@ -95,12 +95,8 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
 mod tests {
     use std::time::Duration;
 
-    use futures_util::{SinkExt, StreamExt};
-    use tokio_tungstenite::connect_async;
-    use tokio_tungstenite::tungstenite::Message;
-    use url::Url;
-
     use crate::args::BotArgs;
+    use crate::example_bots::subscribe_and_take_fold_via_incorrect_api_usage;
     use crate::log_setup::enable_logging_in_test;
     use crate::{main_result, ERROR_CODE_NO_SUBS};
 
@@ -112,39 +108,11 @@ mod tests {
             server_connection_time_seconds: 0.0002,
             n_call_bots: 0,
             n_random_bots: 0,
+            n_fail_bots: 0,
         })
         .await;
         assert!(main_result.is_err());
         assert_eq!(main_result.err().unwrap(), ERROR_CODE_NO_SUBS);
-    }
-
-    async fn subscribe_and_take_fold_via_incorrect_api_usage(port: i32, id: i32) {
-        let url = Url::parse(format!("ws://0.0.0.0:{}", port).as_str()).unwrap();
-        info!("Worker {} connecting to {}", id, url);
-        let (ws_stream, _) = connect_async(url).await.unwrap();
-        let (mut write, mut read) = ws_stream.split();
-        while let Some(message) = read.next().await {
-            match message {
-                Ok(message) => {
-                    if message.is_text() || message.is_binary() {
-                        info!("Received a message in worker {id}");
-                        let send_result = write.send(Message::Text(String::from("hi"))).await;
-                        match send_result {
-                            Ok(_) => {
-                                info!("Sent a message ok from worker {}", id);
-                            }
-                            Err(error) => {
-                                warn!("Got an error from worker {}: {}", id, error);
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error while receiving a message: {}", e);
-                    break;
-                }
-            }
-        }
     }
 
     #[tokio::test]
@@ -158,6 +126,7 @@ mod tests {
                 server_connection_time_seconds: 10.0,
                 n_call_bots: 0,
                 n_random_bots: 0,
+                n_fail_bots: 0,
             })
             .await
         });

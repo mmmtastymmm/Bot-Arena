@@ -11,18 +11,22 @@ pub struct BotArgs {
     #[arg(short, long, default_value_t = 30.0)]
     pub server_connection_time_seconds: f64,
 
-    // Number of calls for call-bot
+    // Number of call bots
     #[arg(short = 'c', long, default_value_t = 0)]
     pub n_call_bots: usize,
 
-    // Number of operations for random-bot
+    // Number of random bots
     #[arg(short = 'r', long, default_value_t = 0)]
     pub n_random_bots: usize,
+
+    // Number of fail bots
+    #[arg(short = 'f', long, default_value_t = 0)]
+    pub n_fail_bots: usize,
 }
 
 // Validation function to ensure the sum of call-bot and random-bot is less than 23
 pub fn validate_bot_args(args: &BotArgs) -> Result<(), String> {
-    let sum = args.n_call_bots + args.n_random_bots;
+    let sum = args.n_call_bots + args.n_random_bots + args.n_fail_bots;
     if sum >= 23 {
         Err("The sum of call-bot and random-bot must be less than 23".to_string())
     } else {
@@ -57,8 +61,15 @@ mod tests {
 
     #[test]
     fn test_bot_args_sum() {
-        let args =
-            BotArgs::parse_from(vec!["test", "--n-call-bots", "11", "--n-random-bots", "12"]);
+        let args = BotArgs::parse_from(vec![
+            "test",
+            "--n-call-bots",
+            "10",
+            "--n-random-bots",
+            "10",
+            "--n-fail-bots",
+            "3",
+        ]);
 
         // The sum should be valid and less than 23
         assert!(validate_bot_args(&args).is_err());
