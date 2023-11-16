@@ -3,44 +3,24 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct BotArgs {
-    // The port to listen to
-    #[arg(short, long, default_value_t = 10100, help = "Server port")]
+    /// The port the server to listen on
+    #[arg(short, long, default_value_t = 10100)]
     pub port: i32,
 
-    // How long to wait to accept connections
-    #[arg(
-        short,
-        long,
-        default_value_t = 30.0,
-        help = "How long to wait for connections"
-    )]
+    /// How long for the server to wait to accept connections
+    #[arg(short, long, default_value_t = 30.0)]
     pub server_connection_time_seconds: f64,
 
-    // Number of call bots
-    #[arg(
-        short = 'c',
-        long,
-        default_value_t = 0,
-        help = "Number of bots that always call"
-    )]
+    /// Number of bots that only call (for testing)
+    #[arg(short = 'c', long, default_value_t = 0)]
     pub n_call_bots: usize,
 
-    // Number of random bots
-    #[arg(
-        short = 'r',
-        long,
-        default_value_t = 0,
-        help = "Number of bots that take a random action"
-    )]
+    /// Number of bots that take random actions (for testing)
+    #[arg(short = 'r', long, default_value_t = 0)]
     pub n_random_bots: usize,
 
-    // Number of fail bots
-    #[arg(
-        short = 'f',
-        long,
-        default_value_t = 0,
-        help = "Number of bots that always fold"
-    )]
+    /// Number of bots that only fold (for testing)
+    #[arg(short = 'f', long, default_value_t = 0)]
     pub n_fail_bots: usize,
 }
 
