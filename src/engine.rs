@@ -34,7 +34,7 @@ impl Engine {
             let input = self.get_client_input().await;
             self.table.take_action(input);
         }
-        println!("{}", self.table.get_results());
+        println!("Game is over:\n{}", self.table.get_results());
     }
 
     pub async fn get_client_input(&mut self) -> HandAction {

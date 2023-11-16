@@ -149,6 +149,7 @@ impl Table {
         debug!("{}", self.generate_last_round_strings());
         // Reset actions taken to just the deal action
         self.round_actions = vec![TableAction::DealCards(self.hand_number)];
+        info!("Dealing for round {}", self.hand_number);
     }
 
     fn generate_last_round_strings(&self) -> String {
@@ -238,6 +239,11 @@ impl Table {
 
     /// Takes an action, could be recursive if the table needs no input
     pub fn take_action(&mut self, hand_action: HandAction) {
+        info!(
+            "Player {} is taking action {}",
+            self.get_current_player().get_id(),
+            hand_action
+        );
         // If the game is over print out a message, and do not take any actions
         if self.is_game_over() {
             println!(
@@ -614,7 +620,7 @@ impl Table {
     /// Picks winner(s), gives out winnings, and deals a new hand
     fn resolve_hand(&mut self) {
         // Generate the result string
-        let mut result_string = String::from("The hand resolved to the following: ");
+        let mut result_string = String::from("The hand resolved because: ");
         // This is the everyone but one person has folded case, give that person the winnings
         if self.get_active_player_count() == 1 {
             let pot_size = self.get_pot_size();
@@ -628,12 +634,13 @@ impl Table {
                 .unwrap();
             winner.total_money += pot_size;
             result_string += format!(
-                "The following player won due to everyone else folding: {}",
+                "The following player won because everyone else folded: {}",
                 winner.get_id()
             )
             .as_str();
         } else {
-            result_string += "Players hands had to be compared and are ranked as follows: \n";
+            let header = self.make_comparison_header();
+            result_string += header.as_str();
             // Otherwise we need to give out winnings based on hand strength
             let sorted_players = self.get_hand_result();
             // All player hands need to be shown so collect that information
@@ -692,9 +699,25 @@ impl Table {
                 }
             }
         }
+        info!("{result_string}");
         self.round_actions
             .push(TableAction::EvaluateHand(result_string));
         self.deal();
+    }
+
+    fn make_comparison_header(&mut self) -> String {
+        let flop_string = self.flop.map_or("None".to_string(), |cards| {
+            format!("{} {} {}", cards[0], cards[1], cards[2])
+        });
+
+        let turn_string = self
+            .turn
+            .map_or("None".to_string(), |card| card.to_string());
+        let river_string = self
+            .river
+            .map_or("None".to_string(), |card| card.to_string());
+        let header = format!("\nPlayers hands had to be compared.\nFlop: {flop_string}\nTurn: {turn_string}\nRiver: {river_string}\nThe hands are ranked as follows: \n");
+        header
     }
 
     fn compare_players_by_bet_amount(player1: &Player, player2: &Player) -> Ordering {

@@ -381,7 +381,7 @@ pub fn test_two_side_pots_with_actions_checked() {
     assert!(last_round.contains("Table advanced to flop."));
     assert!(last_round.contains("Table advanced to turn."));
     assert!(last_round.contains("Table advanced to river."));
-    assert!(last_round.contains("Players hands had to be compared and are ranked as follows:"));
+    assert!(last_round.contains("Players hands had to be compared."));
 }
 
 #[test]
