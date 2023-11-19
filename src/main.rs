@@ -75,7 +75,7 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
             format!("0.0.0.0:{}", args.port).as_str(),
             Duration::from_nanos((args.server_connection_time_seconds * 1e9) as u64),
         )
-        .await,
+            .await,
         Duration::from_nanos(1),
     );
 
@@ -123,7 +123,7 @@ mod tests {
             n_random_bots: 0,
             n_fail_bots: 0,
         })
-        .await;
+            .await;
         assert!(main_result.is_err());
         assert_eq!(main_result.err().unwrap(), ERROR_CODE_NO_SUBS);
     }
@@ -140,7 +140,7 @@ mod tests {
                 n_random_bots: 0,
                 n_fail_bots: 0,
             })
-            .await
+                .await
         });
 
         let mut handles = vec![];
@@ -176,7 +176,7 @@ mod tests {
                 n_random_bots: 7,
                 n_fail_bots: 7,
             })
-            .await
+                .await
         });
 
         tokio::time::sleep(Duration::from_secs(10)).await;
