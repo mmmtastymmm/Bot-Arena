@@ -2,13 +2,13 @@ use std::cmp::min;
 use std::collections::HashSet;
 
 use poker::Card;
+use rand::Rng;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
+use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
 use crate::table::{DealInformation, Table, TableAction};
 
 fn deal_test_cards() -> Table {
@@ -156,7 +156,7 @@ pub fn check_table_action_strings() {
             "{}",
             TableAction::DealCards(DealInformation {
                 round_number: 3,
-                dealer_button_index: 0
+                dealer_button_index: 0,
             })
         ),
         "Table dealt round hand number: 3, dealer index: 0."
@@ -370,7 +370,7 @@ pub fn test_two_side_pots_with_actions_checked() {
         *table.round_actions.last().unwrap(),
         TableAction::DealCards(DealInformation {
             round_number: 2,
-            dealer_button_index: 0
+            dealer_button_index: 0,
         })
     );
     // First two tied for 6, and ante up for the next round so they're at 2

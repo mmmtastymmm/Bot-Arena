@@ -4,7 +4,7 @@ use std::fmt::Formatter;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use json::{array, object, stringify_pretty, JsonValue};
+use json::{array, JsonValue, object, stringify_pretty};
 use poker::{Card, Evaluator};
 
 use crate::actions::HandAction;
@@ -658,7 +658,7 @@ impl Table {
                 "The following player won because everyone else folded: {}",
                 winner.get_id()
             )
-            .as_str();
+                .as_str();
         } else {
             let header = self.make_comparison_header();
             result_string += header.as_str();
@@ -676,7 +676,7 @@ impl Table {
                             state.hand[0],
                             state.hand[1]
                         )
-                        .as_str();
+                            .as_str();
                     }
                 }
             }

@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
 
-use json::{array, object, JsonValue};
+use json::{array, JsonValue, object};
 use poker::Card;
 
 use crate::card_expansion::CardPrinting;
@@ -211,7 +211,7 @@ mod tests {
     use rand::seq::SliceRandom;
     use rand::thread_rng;
 
-    use crate::player_components::{ActiveState, Player, PlayerState, DEFAULT_START_MONEY};
+    use crate::player_components::{ActiveState, DEFAULT_START_MONEY, Player, PlayerState};
 
     #[test]
     fn test_state_json_folded() {
@@ -385,7 +385,7 @@ mod tests {
             json::parse(
                 "{\"state_type\":\"active\",\"details\":{\"hand\":[\"AC\", \"AH\"],\"bet\":30}}"
             )
-            .unwrap()
+                .unwrap()
         )
     }
 
