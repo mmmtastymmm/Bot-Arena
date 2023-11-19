@@ -7,7 +7,7 @@ use std::time::Duration;
 use clap::Parser;
 use env_logger::Env;
 
-use crate::args::{BotArgs, validate_bot_args};
+use crate::args::{validate_bot_args, BotArgs};
 use crate::engine::Engine;
 use crate::example_bots::{
     subscribe_and_take_call_action, subscribe_and_take_fold_via_incorrect_api_usage,
@@ -75,7 +75,7 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
             format!("0.0.0.0:{}", args.port).as_str(),
             Duration::from_nanos((args.server_connection_time_seconds * 1e9) as u64),
         )
-            .await,
+        .await,
         Duration::from_nanos(1),
     );
 
@@ -109,9 +109,9 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
 mod tests {
     use std::time::Duration;
 
-    use crate::{ERROR_CODE_NO_SUBS, main_result};
     use crate::args::BotArgs;
     use crate::example_bots::subscribe_and_take_fold_via_incorrect_api_usage;
+    use crate::{main_result, ERROR_CODE_NO_SUBS};
 
     #[tokio::test]
     async fn check_main_no_subs() {
@@ -123,7 +123,7 @@ mod tests {
             n_random_bots: 0,
             n_fail_bots: 0,
         })
-            .await;
+        .await;
         assert!(main_result.is_err());
         assert_eq!(main_result.err().unwrap(), ERROR_CODE_NO_SUBS);
     }
@@ -140,7 +140,7 @@ mod tests {
                 n_random_bots: 0,
                 n_fail_bots: 0,
             })
-                .await
+            .await
         });
 
         let mut handles = vec![];
@@ -176,7 +176,7 @@ mod tests {
                 n_random_bots: 7,
                 n_fail_bots: 7,
             })
-                .await
+            .await
         });
 
         tokio::time::sleep(Duration::from_secs(10)).await;
@@ -197,7 +197,7 @@ mod tests {
                 n_random_bots: 7,
                 n_fail_bots: 37,
             })
-                .await
+            .await
         });
 
         let result = main_result.await.expect("Main result ended ok");

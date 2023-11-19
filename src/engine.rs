@@ -111,7 +111,7 @@ mod tests {
             Server::from_tcp_listener(tcp_connection, server_wait_duration).await,
             Duration::from_nanos(1),
         )
-            .await;
+        .await;
         // This should be an error as no one connected
         assert!(result.is_err());
     }
@@ -130,7 +130,7 @@ mod tests {
                 Server::from_tcp_listener(tcp_connection, server_wait_duration).await,
                 Duration::from_nanos(1),
             )
-                .await
+            .await
         });
         tokio::time::sleep(Duration::from_millis(10)).await;
         let number_of_connections = 3;
