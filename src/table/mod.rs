@@ -170,6 +170,7 @@ impl Table {
         };
         self.round_actions = vec![TableAction::DealCards(deal_information.clone())];
         info!("Dealing for round {}", deal_information);
+        info!("Dealing for round {}", self.hand_number);
     }
 
     fn generate_last_round_strings(&self) -> String {

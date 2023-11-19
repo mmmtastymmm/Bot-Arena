@@ -8,6 +8,7 @@ use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
+use crate::log_setup::enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
 use crate::table::{DealInformation, Table, TableAction};
 
