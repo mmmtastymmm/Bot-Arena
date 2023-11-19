@@ -111,7 +111,7 @@ mod tests {
 
     use crate::args::BotArgs;
     use crate::example_bots::subscribe_and_take_fold_via_incorrect_api_usage;
-    use crate::log_setup::enable_logging_in_test;
+    use crate::log_setup::_enable_logging_in_test;
     use crate::{main_result, ERROR_CODE_NO_SUBS};
 
     #[tokio::test]
@@ -167,7 +167,7 @@ mod tests {
 
     #[tokio::test]
     async fn check_main_with_all_bots() {
-        enable_logging_in_test();
+        _enable_logging_in_test();
         const PORT_TEST_NUMBER: i32 = 10110;
 
         let main_result = tokio::task::spawn(async move {
