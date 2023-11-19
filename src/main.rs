@@ -7,7 +7,7 @@ use std::time::Duration;
 use clap::Parser;
 use env_logger::Env;
 
-use crate::args::{validate_bot_args, BotArgs};
+use crate::args::{BotArgs, validate_bot_args};
 use crate::engine::Engine;
 use crate::example_bots::{
     subscribe_and_take_call_action, subscribe_and_take_fold_via_incorrect_api_usage,
@@ -109,9 +109,9 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
 mod tests {
     use std::time::Duration;
 
+    use crate::{ERROR_CODE_NO_SUBS, main_result};
     use crate::args::BotArgs;
     use crate::example_bots::subscribe_and_take_fold_via_incorrect_api_usage;
-    use crate::{main_result, ERROR_CODE_NO_SUBS};
 
     #[tokio::test]
     async fn check_main_no_subs() {
@@ -183,5 +183,24 @@ mod tests {
 
         let result = main_result.await.expect("Main result ended ok");
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn check_main_with_all_bad_args() {
+        const PORT_TEST_NUMBER: i32 = 10110;
+
+        let main_result = tokio::task::spawn(async move {
+            main_result(BotArgs {
+                port: PORT_TEST_NUMBER,
+                server_connection_time_seconds: 10.0,
+                n_call_bots: 7,
+                n_random_bots: 7,
+                n_fail_bots: 37,
+            })
+                .await
+        });
+
+        let result = main_result.await.expect("Main result ended ok");
+        assert!(result.is_err());
     }
 }
