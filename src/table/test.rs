@@ -2,13 +2,13 @@ use std::cmp::min;
 use std::collections::HashSet;
 
 use poker::Card;
-use rand::Rng;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-use crate::player_components::{DEFAULT_START_MONEY, PlayerState};
+use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
 use crate::table::{DealInformation, Table, TableAction};
 
 fn deal_test_cards() -> Table {
