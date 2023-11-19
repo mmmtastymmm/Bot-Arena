@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn check_main_with_all_bad_args() {
+    async fn check_main_with_bad_args() {
         const PORT_TEST_NUMBER: i32 = 10110;
 
         let main_result = tokio::task::spawn(async move {
