@@ -10,7 +10,7 @@ pub async fn subscribe_and_take_fold_via_incorrect_api_usage(port: i32, id: usiz
 }
 
 pub async fn subscribe_and_take_call_action(port: i32, id: usize) {
-    subscribe_and_take_action(port, id, "Incorrect Bot", || {
+    subscribe_and_take_action(port, id, "Call Bot", || {
         String::from("{\"action\":\"call\"}")
     })
     .await;
