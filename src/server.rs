@@ -80,7 +80,7 @@ impl Server {
 #[cfg(test)]
 mod tests {
     use tokio::net::TcpStream;
-    use tokio::time::{Duration, sleep};
+    use tokio::time::{sleep, Duration};
     use tokio_tungstenite::connect_async;
     use url::Url;
 
@@ -101,7 +101,7 @@ mod tests {
                 server_url.as_str(),
                 wait_duration + server_startup_wait_time,
             )
-                .await
+            .await
         });
         // Wait for the server to be up
         info!(

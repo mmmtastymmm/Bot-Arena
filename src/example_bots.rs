@@ -1,6 +1,6 @@
 use futures_util::{SinkExt, StreamExt};
-use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use url::Url;
@@ -13,7 +13,7 @@ pub async fn subscribe_and_take_call_action(port: i32, id: usize) {
     subscribe_and_take_action(port, id, "Incorrect Bot", || {
         String::from("{\"action\":\"call\"}")
     })
-        .await;
+    .await;
 }
 
 pub async fn subscribe_and_take_random_action(port: i32, id: usize) {
@@ -28,12 +28,12 @@ pub async fn subscribe_and_take_random_action(port: i32, id: usize) {
         let random_index = rng.gen_range(0..options.len());
         options[random_index].to_string()
     })
-        .await;
+    .await;
 }
 
 pub async fn subscribe_and_take_action<F>(port: i32, id: usize, bot_name: &str, action_fn: F)
-    where
-        F: Fn() -> String + Send + 'static,
+where
+    F: Fn() -> String + Send + 'static,
 {
     let name = format!("{bot_name} {id}");
     let url = format!("ws://0.0.0.0:{}", port);
