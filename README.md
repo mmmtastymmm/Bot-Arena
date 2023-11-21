@@ -9,12 +9,21 @@ For letting bots compete against each other.
 
 
 ### Docker
-A docker image is provided. Make sure to publish the port of the server, by default 
+A docker image is provided. Below would be an example of running the server with 21 call bots (for testing purposes). 
+It also publishes the default server port to the local machine.
 
+```bash
+docker run --rm -it -p 10100:10100 mmmtastymmm/bot-arena:main --n-call-bots=21
+```
 
+### Local Machine
+To run on a local machine a cargo run command can be used
 
+```bash
+cargo run -- --n-call-bots=21
+```
 
-
-Coverage Sunburst Chart, because we can
+## Coverage Sunburst Chart 
+because why not
 
 ![code](https://codecov.io/gh/mmmtastymmm/Bot-Arena/branch/main/graphs/sunburst.svg?token=R057I3M5PS)
