@@ -7,6 +7,12 @@ For letting bots compete against each other.
 
 ## Running
 
+### Local Machine
+To run on a local machine a cargo run command can be used.
+
+```bash
+cargo run --release -- --n-call-bots=21
+```
 
 ### Docker
 A docker image is provided. Below would be an example of running the server with 21 call bots (for testing purposes). 
@@ -16,12 +22,8 @@ It also publishes the default server port to the local machine.
 docker run --rm -it -p 10100:10100 mmmtastymmm/bot-arena:main --n-call-bots=21
 ```
 
-### Local Machine
-To run on a local machine a cargo run command can be used
+## Interface
 
-```bash
-cargo run -- --n-call-bots=21
-```
 
 ## Coverage Sunburst Chart 
 because why not

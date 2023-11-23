@@ -34,7 +34,14 @@ impl Engine {
             let input = self.get_client_input().await;
             self.table.take_action(input);
         }
-        println!("Game is over:\n{}", self.table.get_results());
+        let results = format!("Game is over:\n{}", self.table.get_results());
+        println!("{}", results);
+        for (index, connection) in &mut self.server.connections.iter_mut().enumerate() {
+            let send_result = connection.send(Message::Text(results.clone())).await;
+            if send_result.is_err() {
+                warn!("Couldn't send the results to subscriber {index}")
+            }
+        }
     }
 
     pub async fn get_client_input(&mut self) -> HandAction {

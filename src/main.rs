@@ -76,7 +76,7 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
             Duration::from_nanos((args.server_connection_time_seconds * 1e9) as u64),
         )
         .await,
-        Duration::from_nanos(1),
+        Duration::from_secs(1),
     );
 
     // Wait for the engine to finish accepting connections
