@@ -11,7 +11,7 @@ use crate::actions::HandAction;
 use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
 use crate::card_expansion::CardPrinting;
-use crate::global_constants::SHARED_EVALUATOR;
+use crate::global_immutables::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
