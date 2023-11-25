@@ -21,7 +21,7 @@ mod bet_stage;
 mod card_expansion;
 mod engine;
 mod example_bots;
-mod globals;
+mod global_constants;
 mod log_setup;
 mod player_components;
 mod server;
