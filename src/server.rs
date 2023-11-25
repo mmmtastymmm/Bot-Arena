@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::time::Duration;
 
 use log::info;
@@ -23,6 +24,8 @@ impl Server {
         info!("Will try to listen for: {:?}", wait_duration);
         let mut connections = vec![];
 
+        let mut addresses = HashSet::new();
+
         let start_time = tokio::time::Instant::now();
         // Loop until the timeout occurs
         loop {
@@ -44,7 +47,16 @@ impl Server {
                         "New WebSocket connection from the following address: {}",
                         addr
                     );
-                    connections.push(ws_stream);
+                    if addr.ip().is_loopback() || !addresses.contains(&addr.ip()) {
+                        addresses.insert(addr.ip());
+                        connections.push(ws_stream);
+                        info!(
+                            "Added the following address to the list of listeners: {}",
+                            addr
+                        );
+                    } else {
+                        warn!("Couldn't add the connection {addr} because there was already a connection from this host: {}", addr.ip());
+                    }
                 }
                 // The connection was bad
                 Ok(Err(e)) => {
@@ -72,12 +84,10 @@ mod tests {
     use tokio_tungstenite::connect_async;
     use url::Url;
 
-    use crate::log_setup::enable_logging_in_test;
     use crate::server::Server;
 
     #[tokio::test]
     async fn test_server_acceptance_window() {
-        enable_logging_in_test();
         // Use a local address for the testing
         const ADDRESS: &str = "127.0.0.1:8088";
         let server_url = ADDRESS.to_string();

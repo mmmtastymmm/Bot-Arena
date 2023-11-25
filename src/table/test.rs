@@ -8,9 +8,8 @@ use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-use crate::log_setup::enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
-use crate::table::{Table, TableAction};
+use crate::table::{DealInformation, Table, TableAction};
 
 fn deal_test_cards() -> Table {
     let mut table = Table::new(6);
@@ -153,8 +152,14 @@ pub fn check_table_action_strings() {
         "Player 3 took action Fold."
     );
     assert_eq!(
-        format!("{}", TableAction::DealCards(3)),
-        "Table dealt round 3."
+        format!(
+            "{}",
+            TableAction::DealCards(DealInformation {
+                round_number: 3,
+                dealer_button_index: 0,
+            })
+        ),
+        "Table dealt round hand number: 3, dealer index: 0."
     );
     assert_eq!(
         format!("{}", TableAction::AdvanceToFlop),
@@ -363,7 +368,10 @@ pub fn test_two_side_pots_with_actions_checked() {
     //Now the table should have dealt again
     assert_eq!(
         *table.round_actions.last().unwrap(),
-        TableAction::DealCards(2)
+        TableAction::DealCards(DealInformation {
+            round_number: 2,
+            dealer_button_index: 0,
+        })
     );
     // First two tied for 6, and ante up for the next round so they're at 2
     assert_eq!(table.players[0].total_money, 2);
@@ -377,7 +385,7 @@ pub fn test_two_side_pots_with_actions_checked() {
     assert_eq!(table.players[5].total_money, 489);
     // Generate the latest round string and make sure some events occurred
     let last_round = table.generate_last_round_strings();
-    assert!(last_round.contains("Table dealt round 1."));
+    assert!(last_round.contains("Table dealt round hand number: 1"));
     assert!(last_round.contains("Table advanced to flop."));
     assert!(last_round.contains("Table advanced to turn."));
     assert!(last_round.contains("Table advanced to river."));
@@ -724,7 +732,6 @@ fn test_api_reasonable(table: &Table) {
 
 #[test]
 fn test_rounds_with_some_folding() {
-    enable_logging_in_test();
     const NUMBER_OF_PLAYERS: usize = 23;
     for round_number in 0..25 {
         info!("Starting round: {round_number}");
@@ -732,6 +739,8 @@ fn test_rounds_with_some_folding() {
         test_api_reasonable(&table);
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
+        let mut previous_dealer_index = None;
+        let mut previous_round_number = None;
         for _ in 0..1000000 {
             if table.is_game_over() {
                 // Make sure dealing also doesn't enable the game
@@ -742,6 +751,11 @@ fn test_rounds_with_some_folding() {
                 assert!(table.is_game_over());
                 break;
             }
+            if previous_round_number != Some(table.hand_number) {
+                previous_round_number = Some(table.hand_number);
+                assert_ne!(previous_dealer_index, Some(table.dealer_button_index));
+                previous_dealer_index = Some(table.dealer_button_index);
+            }
             assert!(table.get_current_player_mut().player_state.is_active());
             let mut rng = thread_rng();
             let action_int = rng.gen_range(0..4);
@@ -751,6 +765,39 @@ fn test_rounds_with_some_folding() {
                 2 => table.take_action(HandAction::Call),
                 _ => table.take_action(HandAction::Fold),
             }
+        }
+        info!("Following round passed: {round_number}")
+    }
+}
+
+#[test]
+fn test_rounds_with_only_calling() {
+    const NUMBER_OF_PLAYERS: usize = 2;
+    for round_number in 0..25 {
+        info!("Starting round: {round_number}");
+        let mut table = Table::new(NUMBER_OF_PLAYERS);
+        test_api_reasonable(&table);
+        assert_eq!(table.table_state, PreFlop);
+        assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
+        let mut previous_dealer_index = None;
+        let mut previous_round_number = None;
+        for _ in 0..1000000 {
+            if table.is_game_over() {
+                // Make sure dealing also doesn't enable the game
+                table.deal();
+                assert!(table.is_game_over());
+                // Make sure taking actions doesn't somehow enable the game
+                table.take_action(HandAction::Call);
+                assert!(table.is_game_over());
+                break;
+            }
+            if previous_round_number != Some(table.hand_number) {
+                previous_round_number = Some(table.hand_number);
+                assert_ne!(previous_dealer_index, Some(table.dealer_button_index));
+                previous_dealer_index = Some(table.dealer_button_index);
+            }
+            assert!(table.get_current_player_mut().player_state.is_active());
+            table.take_action(HandAction::Call)
         }
         info!("Following round passed: {round_number}")
     }

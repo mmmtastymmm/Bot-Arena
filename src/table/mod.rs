@@ -15,13 +15,29 @@ use crate::globals::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
+pub struct DealInformation {
+    pub round_number: i32,
+    pub dealer_button_index: usize,
+}
+
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum TableAction {
     TakePlayerAction(i8, HandAction),
-    DealCards(i32),
+    DealCards(DealInformation),
     AdvanceToFlop,
     AdvanceToTurn,
     AdvanceToRiver,
     EvaluateHand(String),
+}
+
+impl fmt::Display for DealInformation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "hand number: {}, dealer index: {}",
+            self.round_number, self.dealer_button_index
+        )
+    }
 }
 
 impl fmt::Display for TableAction {
@@ -148,7 +164,12 @@ impl Table {
         // log the results of the previous round
         debug!("{}", self.generate_last_round_strings());
         // Reset actions taken to just the deal action
-        self.round_actions = vec![TableAction::DealCards(self.hand_number)];
+        let deal_information = DealInformation {
+            round_number: self.hand_number,
+            dealer_button_index: self.dealer_button_index,
+        };
+        self.round_actions = vec![TableAction::DealCards(deal_information.clone())];
+        info!("Dealing for round {}", deal_information);
         info!("Dealing for round {}", self.hand_number);
     }
 
@@ -418,7 +439,7 @@ impl Table {
         for _ in 0..self.players.len() {
             // set the next dealer index by finding the next alive player
             self.dealer_button_index += 1;
-            if self.dealer_button_index + 1 >= self.get_player_count() {
+            if self.dealer_button_index >= self.get_player_count() {
                 self.dealer_button_index = 0;
             }
             if self
