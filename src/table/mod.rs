@@ -14,7 +14,7 @@ use crate::card_expansion::CardPrinting;
 use crate::global_immutables::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
 use crate::table::deal_information::DealInformation;
-use crate::table::table_action::TableAction;
+use crate::table::table_action::{get_vec_of_strings_from_actions, TableAction};
 
 mod deal_information;
 mod table_action;
@@ -478,10 +478,6 @@ impl Table {
         self.get_table_state_json_for_player(self.get_current_player_index() as i8)
     }
 
-    pub fn get_vec_of_strings_from_actions(actions: &[TableAction]) -> Vec<String> {
-        actions.iter().map(|x| x.to_string()).collect()
-    }
-
     pub fn get_table_state_json_for_player(&self, id: i8) -> JsonValue {
         let player_strings: Vec<_> = self
             .players
@@ -499,8 +495,8 @@ impl Table {
             river: self.get_river_string_secret(),
             dealer_button_index: self.dealer_button_index,
             players: player_strings,
-            actions: Table::get_vec_of_strings_from_actions(&self.round_actions),
-            previous_actions: Table::get_vec_of_strings_from_actions(&self.previous_round_actions),
+            actions: get_vec_of_strings_from_actions(&self.round_actions),
+            previous_actions: get_vec_of_strings_from_actions(&self.previous_round_actions),
         }
     }
     fn is_betting_over(&self) -> bool {

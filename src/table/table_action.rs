@@ -45,3 +45,7 @@ impl fmt::Display for TableAction {
         }
     }
 }
+
+pub fn get_vec_of_strings_from_actions(actions: &[TableAction]) -> Vec<String> {
+    actions.iter().map(|x| x.to_string()).collect()
+}
