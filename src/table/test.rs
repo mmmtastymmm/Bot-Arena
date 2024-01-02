@@ -9,6 +9,7 @@ use rand::Rng;
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
+use crate::table::table_action::get_vec_of_strings_from_actions;
 use crate::table::{DealInformation, Table, TableAction};
 
 fn deal_test_cards() -> Table {
@@ -335,10 +336,10 @@ pub fn test_two_side_pots_with_actions_checked() {
     );
     assert_eq!(table.get_current_player_mut().get_id(), 4);
     table.take_action(HandAction::Raise(10));
-    // Note: betting 9 is going all in
+    // The max raise at this point is 8, so the actual raise should be 8 now
     assert_eq!(
         *table.round_actions.last().unwrap(),
-        TableAction::TakePlayerAction(4_i8, HandAction::Raise(9))
+        TableAction::TakePlayerAction(4_i8, HandAction::Raise(8))
     );
     assert_eq!(table.get_current_player_mut().get_id(), 5);
     table.take_action(HandAction::Call);
@@ -370,7 +371,7 @@ pub fn test_two_side_pots_with_actions_checked() {
         *table.round_actions.last().unwrap(),
         TableAction::DealCards(DealInformation {
             round_number: 2,
-            dealer_button_index: 0,
+            dealer_button_index: 1,
         })
     );
     // First two tied for 6, and ante up for the next round so they're at 2
@@ -506,7 +507,7 @@ pub fn check_correct_number_of_lists_present() {
     table.deal();
     let json_string = table.get_table_state_json_for_player(0).to_string();
     // 5 open brackets, 1 for the player list, 1 for the card list, 1 for the flop, 1 for actions, 1 for previous actions
-    assert_eq!(json_string.matches('[').count(), 5);
+    assert_eq!(json_string.matches('[').count(), 7);
 }
 
 #[test]
@@ -733,14 +734,17 @@ fn test_api_reasonable(table: &Table) {
 #[test]
 fn test_rounds_with_some_folding() {
     const NUMBER_OF_PLAYERS: usize = 23;
-    for round_number in 0..25 {
-        info!("Starting round: {round_number}");
+    const NUMBER_OF_GAMES: i32 = 25;
+    for game_number in 0..NUMBER_OF_GAMES {
+        info!("Starting game: {game_number}");
         let mut table = Table::new(NUMBER_OF_PLAYERS);
         test_api_reasonable(&table);
         assert_eq!(table.table_state, PreFlop);
         assert_eq!(table.get_active_player_count(), NUMBER_OF_PLAYERS);
         let mut previous_dealer_index = None;
         let mut previous_round_number = None;
+        let mut last_known_table_state = None;
+        let mut untouchables = vec![];
         for _ in 0..1000000 {
             if table.is_game_over() {
                 // Make sure dealing also doesn't enable the game
@@ -751,6 +755,27 @@ fn test_rounds_with_some_folding() {
                 assert!(table.is_game_over());
                 break;
             }
+            if last_known_table_state != Some(table.table_state) {
+                last_known_table_state = Some(table.table_state);
+                let good_index = table.get_next_valid_player(table.dealer_button_index);
+                untouchables = {
+                    let mut mini = vec![];
+                    let mut index = table.dealer_button_index + 1;
+                    loop {
+                        if index >= table.players.len() {
+                            index = 0;
+                        }
+                        if index == good_index {
+                            break;
+                        }
+                        mini.push(index);
+                        index += 1;
+                    }
+                    mini
+                };
+                assert_eq!(good_index, table.current_player_index);
+            }
+            assert!(!untouchables.contains(&table.current_player_index));
             if previous_round_number != Some(table.hand_number) {
                 previous_round_number = Some(table.hand_number);
                 assert_ne!(previous_dealer_index, Some(table.dealer_button_index));
@@ -766,7 +791,7 @@ fn test_rounds_with_some_folding() {
                 _ => table.take_action(HandAction::Fold),
             }
         }
-        info!("Following round passed: {round_number}")
+        info!("The following game ended: {game_number}")
     }
 }
 
@@ -1009,4 +1034,31 @@ pub fn test_only_unique_cards_with_deal() {
         }
         assert_eq!(set.len(), NUMBER_OF_PLAYERS * 2 + 5);
     }
+}
+
+#[test]
+pub fn test_raise_action_string() {
+    const NUMBER_OF_PLAYERS: usize = 2;
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
+    assert_eq!(table.table_state, PreFlop);
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Call);
+    assert_eq!(table.table_state, Flop);
+    let strings = get_vec_of_strings_from_actions(&table.round_actions);
+    for string in &strings {
+        println!("{string}")
+    }
+    assert_eq!(
+        strings
+            .into_iter()
+            .filter(|string| string.contains("Raise by 1"))
+            .count(),
+        7
+    );
 }

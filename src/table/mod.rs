@@ -10,68 +10,13 @@ use poker::{Card, Evaluator};
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
-use crate::card_expansion::CardPrinting;
-use crate::globals::SHARED_EVALUATOR;
+use crate::global_immutables::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
+use crate::table::deal_information::DealInformation;
+use crate::table::table_action::{get_vec_of_strings_from_actions, TableAction};
 
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct DealInformation {
-    pub round_number: i32,
-    pub dealer_button_index: usize,
-}
-
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub enum TableAction {
-    TakePlayerAction(i8, HandAction),
-    DealCards(DealInformation),
-    AdvanceToFlop,
-    AdvanceToTurn,
-    AdvanceToRiver,
-    EvaluateHand(String),
-}
-
-impl fmt::Display for DealInformation {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "hand number: {}, dealer index: {}",
-            self.round_number, self.dealer_button_index
-        )
-    }
-}
-
-impl fmt::Display for TableAction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            TableAction::TakePlayerAction(player, hand_action) => {
-                write!(
-                    f,
-                    "Player {player} took action {}.",
-                    hand_action.simple_string()
-                )
-            }
-            TableAction::DealCards(round_number) => {
-                write!(f, "Table dealt round {round_number}.")
-            }
-            TableAction::AdvanceToFlop => {
-                write!(f, "Table advanced to flop.")
-            }
-            TableAction::AdvanceToTurn => {
-                write!(f, "Table advanced to turn.")
-            }
-            TableAction::AdvanceToRiver => {
-                write!(f, "Table advanced to river.")
-            }
-            TableAction::EvaluateHand(string) => {
-                write!(
-                    f,
-                    "Table evaluated hand with the following result: {string}"
-                )
-            }
-        }
-    }
-}
-
+mod deal_information;
+mod table_action;
 #[cfg(test)]
 mod test;
 
@@ -166,11 +111,10 @@ impl Table {
         // Reset actions taken to just the deal action
         let deal_information = DealInformation {
             round_number: self.hand_number,
-            dealer_button_index: self.dealer_button_index,
+            dealer_button_index: self.get_next_dealer_button_index(),
         };
         self.round_actions = vec![TableAction::DealCards(deal_information.clone())];
         info!("Dealing for round {}", deal_information);
-        info!("Dealing for round {}", self.hand_number);
     }
 
     fn generate_last_round_strings(&self) -> String {
@@ -191,9 +135,9 @@ impl Table {
             None => array!["None"],
             Some(cards) => {
                 array![
-                    cards[0].to_ascii_string(),
-                    cards[1].to_ascii_string(),
-                    cards[2].to_ascii_string()
+                    cards[0].to_string(),
+                    cards[1].to_string(),
+                    cards[2].to_string()
                 ]
             }
         }
@@ -207,9 +151,9 @@ impl Table {
                 PreFlop => array!["Hidden"],
                 _ => {
                     array![
-                        cards[0].to_ascii_string(),
-                        cards[1].to_ascii_string(),
-                        cards[2].to_ascii_string()
+                        cards[0].to_string(),
+                        cards[1].to_string(),
+                        cards[2].to_string()
                     ]
                 }
             },
@@ -220,7 +164,7 @@ impl Table {
     pub fn get_turn_string(&self) -> JsonValue {
         match self.turn {
             None => "None".into(),
-            Some(card) => card.to_ascii_string().into(),
+            Some(card) => card.to_string().into(),
         }
     }
 
@@ -230,7 +174,7 @@ impl Table {
             Some(card) => match &self.table_state {
                 PreFlop => "Hidden".into(),
                 Flop => "Hidden".into(),
-                _ => card.to_ascii_string().into(),
+                _ => card.to_string().into(),
             },
         }
     }
@@ -239,7 +183,7 @@ impl Table {
     pub fn get_river_string(&self) -> JsonValue {
         match self.river {
             None => "None".into(),
-            Some(card) => card.to_ascii_string().into(),
+            Some(card) => card.to_string().into(),
         }
     }
 
@@ -247,7 +191,7 @@ impl Table {
         match self.river {
             None => "None".into(),
             Some(card) => match &self.table_state {
-                River => card.to_ascii_string().into(),
+                River => card.to_string().into(),
                 _ => "Hidden".into(),
             },
         }
@@ -359,7 +303,7 @@ impl Table {
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
                 let table_action = TableAction::TakePlayerAction(
                     self.get_current_player_mut().get_id(),
-                    HandAction::Raise(bet_amount),
+                    HandAction::Raise(bet_amount - difference),
                 );
                 self.round_actions.push(table_action);
             }
@@ -436,45 +380,36 @@ impl Table {
 
     /// Finds the next dealer button index (next player in the list that is alive
     fn find_next_deal_button_index_and_update_current_player(&mut self) {
+        let next_dealer_button_index = self.get_next_dealer_button_index();
+        // Set the current dealer button, and then increment that
+        self.current_player_index = next_dealer_button_index;
+        self.dealer_button_index = next_dealer_button_index;
+        self.update_current_player_index_to_next_active();
+    }
+
+    fn get_next_dealer_button_index(&self) -> usize {
+        let mut next_dealer_button_index = self.dealer_button_index;
         for _ in 0..self.players.len() {
             // set the next dealer index by finding the next alive player
-            self.dealer_button_index += 1;
-            if self.dealer_button_index >= self.get_player_count() {
-                self.dealer_button_index = 0;
+
+            next_dealer_button_index += 1;
+            if next_dealer_button_index >= self.get_player_count() {
+                next_dealer_button_index = 0;
             }
             if self
                 .players
-                .get(self.dealer_button_index)
+                .get(next_dealer_button_index)
                 .unwrap()
                 .is_alive()
             {
                 break;
             }
         }
-        // Set the current dealer button, and then increment that
-        self.current_player_index = self.dealer_button_index;
-        self.update_current_player_index_to_next_active();
+        next_dealer_button_index
     }
 
     fn update_current_player_index_to_next_active(&mut self) {
-        for _ in 0..self.players.len() {
-            // Set the next active player to the next index, resetting back down if out of bounds
-            self.current_player_index += 1;
-            if self.current_player_index >= self.players.len() {
-                self.current_player_index = 0;
-            }
-            // An all in player is no longer can take actions so skip them as well
-            if self.get_current_player_mut().total_money == 0 {
-                continue;
-            }
-            // If the player is active while also not all in they are the next active player
-            match self.get_current_player_mut().player_state {
-                PlayerState::Folded => {}
-                PlayerState::Active(_) => {
-                    break;
-                }
-            }
-        }
+        self.current_player_index = self.get_next_valid_player(self.current_player_index);
         if !self.get_current_player_mut().is_alive() {
             panic!("Current player not alive after update!")
         }
@@ -484,6 +419,28 @@ impl Table {
             }
             PlayerState::Active(_) => {}
         }
+    }
+
+    fn get_next_valid_player(&self, mut index_to_search_from: usize) -> usize {
+        for _ in 0..self.players.len() {
+            // Calculate the next active player from the current index
+            index_to_search_from += 1;
+            if index_to_search_from >= self.players.len() {
+                index_to_search_from = 0;
+            }
+            // An all in player is no longer can take actions so skip them as well.
+            if self.players[index_to_search_from].total_money == 0 {
+                continue;
+            }
+            // If the player is active while also not all in they are the next active player.
+            match self.players[index_to_search_from].player_state {
+                PlayerState::Folded => {}
+                PlayerState::Active(_) => {
+                    break;
+                }
+            }
+        }
+        index_to_search_from
     }
 
     /// Deals cards for the flop, turn, and river
@@ -532,10 +489,6 @@ impl Table {
         self.get_table_state_json_for_player(self.get_current_player_index() as i8)
     }
 
-    pub fn get_vec_of_strings_from_actions(actions: &[TableAction]) -> Vec<String> {
-        actions.iter().map(|x| x.to_string()).collect()
-    }
-
     pub fn get_table_state_json_for_player(&self, id: i8) -> JsonValue {
         let player_strings: Vec<_> = self
             .players
@@ -553,8 +506,8 @@ impl Table {
             river: self.get_river_string_secret(),
             dealer_button_index: self.dealer_button_index,
             players: player_strings,
-            actions: Table::get_vec_of_strings_from_actions(&self.round_actions),
-            previous_actions: Table::get_vec_of_strings_from_actions(&self.previous_round_actions),
+            actions: get_vec_of_strings_from_actions(&self.round_actions),
+            previous_actions: get_vec_of_strings_from_actions(&self.previous_round_actions),
         }
     }
     fn is_betting_over(&self) -> bool {
@@ -641,7 +594,7 @@ impl Table {
     /// Picks winner(s), gives out winnings, and deals a new hand
     fn resolve_hand(&mut self) {
         // Generate the result string
-        let mut result_string = String::from("The hand resolved because: ");
+        let mut result_string = "".to_string();
         // This is the everyone but one person has folded case, give that person the winnings
         if self.get_active_player_count() == 1 {
             let pot_size = self.get_pot_size();
