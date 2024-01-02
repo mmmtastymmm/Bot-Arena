@@ -23,7 +23,7 @@ pub struct BotArgs {
     #[arg(short = 'f', long, default_value_t = 0)]
     pub n_fail_bots: usize,
 
-    /// Log level
+    /// Override to disable all logging if passed
     #[arg(short = 'l', long)]
     pub disable_logging: bool,
 }
