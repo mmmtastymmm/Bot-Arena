@@ -116,7 +116,6 @@ impl Table {
         };
         self.round_actions = vec![TableAction::DealCards(deal_information.clone())];
         info!("Dealing for round {}", deal_information);
-        info!("Dealing for round {}", self.hand_number);
     }
 
     fn generate_last_round_strings(&self) -> String {
@@ -382,24 +381,32 @@ impl Table {
 
     /// Finds the next dealer button index (next player in the list that is alive
     fn find_next_deal_button_index_and_update_current_player(&mut self) {
+        let next_dealer_button_index = self.get_next_dealer_button_index();
+        // Set the current dealer button, and then increment that
+        self.current_player_index = next_dealer_button_index;
+        self.dealer_button_index = next_dealer_button_index;
+        self.update_current_player_index_to_next_active();
+    }
+
+    fn get_next_dealer_button_index(&self) -> usize {
+        let mut next_dealer_button_index = self.dealer_button_index;
         for _ in 0..self.players.len() {
             // set the next dealer index by finding the next alive player
-            self.dealer_button_index += 1;
-            if self.dealer_button_index >= self.get_player_count() {
-                self.dealer_button_index = 0;
+
+            next_dealer_button_index += 1;
+            if next_dealer_button_index >= self.get_player_count() {
+                next_dealer_button_index = 0;
             }
             if self
                 .players
-                .get(self.dealer_button_index)
+                .get(next_dealer_button_index)
                 .unwrap()
                 .is_alive()
             {
                 break;
             }
         }
-        // Set the current dealer button, and then increment that
-        self.current_player_index = self.dealer_button_index;
-        self.update_current_player_index_to_next_active();
+        next_dealer_button_index
     }
 
     fn update_current_player_index_to_next_active(&mut self) {

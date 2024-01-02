@@ -1053,6 +1053,9 @@ pub fn test_raise_action_string() {
     table.take_action(HandAction::Call);
     assert_eq!(table.table_state, Flop);
     let strings = get_vec_of_strings_from_actions(&table.round_actions);
+    for string in &strings {
+        println!("{string}")
+    }
     assert_eq!(
         strings
             .into_iter()
