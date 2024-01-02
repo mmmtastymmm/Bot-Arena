@@ -58,6 +58,16 @@ mod tests {
     }
 
     #[test]
+    fn test_disable_logging_arg() {
+        let args = BotArgs::parse_from(vec!["test"]);
+        assert!(!args.disable_logging);
+        let args = BotArgs::parse_from(vec!["test", "--disable-logging"]);
+        assert!(args.disable_logging);
+        let args = BotArgs::parse_from(vec!["test", "-l"]);
+        assert!(args.disable_logging);
+    }
+
+    #[test]
     fn test_custom_connection_time() {
         let args = BotArgs::parse_from(vec!["test", "--server-connection-time-seconds", "45.0"]);
         assert_eq!(args.server_connection_time_seconds, 45.0);
