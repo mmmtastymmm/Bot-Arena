@@ -8,7 +8,6 @@ use rand::Rng;
 
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River, Turn};
-use crate::log_setup::_enable_logging_in_test;
 use crate::player_components::{PlayerState, DEFAULT_START_MONEY};
 use crate::table::table_action::get_vec_of_strings_from_actions;
 use crate::table::{DealInformation, Table, TableAction};
@@ -508,7 +507,7 @@ pub fn check_correct_number_of_lists_present() {
     table.deal();
     let json_string = table.get_table_state_json_for_player(0).to_string();
     // 5 open brackets, 1 for the player list, 1 for the card list, 1 for the flop, 1 for actions, 1 for previous actions
-    assert_eq!(json_string.matches('[').count(), 5);
+    assert_eq!(json_string.matches('[').count(), 7);
 }
 
 #[test]
@@ -1039,7 +1038,6 @@ pub fn test_only_unique_cards_with_deal() {
 
 #[test]
 pub fn test_raise_action_string() {
-    _enable_logging_in_test();
     const NUMBER_OF_PLAYERS: usize = 2;
     let mut table = Table::new(NUMBER_OF_PLAYERS);
     assert_eq!(table.table_state, PreFlop);

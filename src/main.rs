@@ -41,7 +41,9 @@ async fn main_result(args: BotArgs) -> Result<(), i32> {
         ERROR_CODE_BAD_INPUT
     })?;
 
-    let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
+    if !args.disable_logging {
+        let _ = env_logger::Builder::from_env(Env::default().default_filter_or("info")).try_init();
+    }
 
     validate_bot_args(&args).map_err(|error| {
         error!("Arg validation error: {error}");
@@ -122,6 +124,7 @@ mod tests {
             n_call_bots: 0,
             n_random_bots: 0,
             n_fail_bots: 0,
+            disable_logging: true,
         })
         .await;
         assert!(main_result.is_err());
@@ -139,6 +142,7 @@ mod tests {
                 n_call_bots: 0,
                 n_random_bots: 0,
                 n_fail_bots: 0,
+                disable_logging: true,
             })
             .await
         });
@@ -175,6 +179,7 @@ mod tests {
                 n_call_bots: 7,
                 n_random_bots: 7,
                 n_fail_bots: 7,
+                disable_logging: true,
             })
             .await
         });
@@ -196,6 +201,7 @@ mod tests {
                 n_call_bots: 7,
                 n_random_bots: 7,
                 n_fail_bots: 37,
+                disable_logging: true,
             })
             .await
         });

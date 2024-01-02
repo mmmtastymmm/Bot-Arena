@@ -5,7 +5,6 @@ use std::fmt::Formatter;
 use json::{array, object, JsonValue};
 use poker::Card;
 
-use crate::card_expansion::CardPrinting;
 use crate::player_components::PlayerState::{Active, Folded};
 
 pub const DEFAULT_START_MONEY: i32 = 500;
@@ -46,7 +45,7 @@ impl PlayerState {
                 object!(state_type: "folded", details: object! ())
             }
             Active(a) => {
-                object!(state_type: "active", details: object!(hand: array![a.hand[0].to_ascii_string(), a.hand[1].to_ascii_string()], bet: a.current_bet))
+                object!(state_type: "active", details: object!(hand: array![a.hand[0].to_string(), a.hand[1].to_string()], bet: a.current_bet))
             }
         }
     }
@@ -76,10 +75,7 @@ impl PlayerState {
                 array!["None"]
             }
             Active(active) => {
-                array![
-                    active.hand[0].to_ascii_string(),
-                    active.hand[1].to_ascii_string()
-                ]
+                array![active.hand[0].to_string(), active.hand[1].to_string()]
             }
         }
     }
@@ -231,8 +227,8 @@ mod tests {
             player.player_state.get_cards_json()
         };
         assert_eq!(json.len(), 2);
-        assert_eq!(json[0], "AC");
-        assert_eq!(json[1], "AH");
+        assert_eq!(json[0], "[ A♣ ]");
+        assert_eq!(json[1], "[ A♥ ]");
     }
 
     #[test]
@@ -383,7 +379,7 @@ mod tests {
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
             json::parse(
-                "{\"state_type\":\"active\",\"details\":{\"hand\":[\"AC\", \"AH\"],\"bet\":30}}"
+                "{\"state_type\":\"active\",\"details\":{\"hand\":[\"[ A♣ ]\", \"[ A♥ ]\"],\"bet\":30}}"
             )
             .unwrap()
         )
@@ -412,7 +408,7 @@ mod tests {
         let json_parsed_string = json::parse(&string_version).unwrap().dump();
         assert_eq!(
             json::parse(&json_parsed_string).unwrap(),
-            json::parse("{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":[ \"AC\", \"AH\" ],\"bet\":500}},\"id\":0,\"total_money\":0}").unwrap())
+            json::parse("{\"player_state\":{\"state_type\":\"active\",\"details\":{\"hand\":[ \"[ A♣ ]\", \"[ A♥ ]\" ],\"bet\":500}},\"id\":0,\"total_money\":0}").unwrap())
     }
 
     #[test]

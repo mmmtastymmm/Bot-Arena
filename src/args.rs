@@ -22,6 +22,10 @@ pub struct BotArgs {
     /// Number of bots that only fold (for testing)
     #[arg(short = 'f', long, default_value_t = 0)]
     pub n_fail_bots: usize,
+
+    /// Log level
+    #[arg(short = 'l', long)]
+    pub disable_logging: bool,
 }
 
 // Validation function to ensure the sum of call-bot and random-bot is less than 23

@@ -10,7 +10,6 @@ use poker::{Card, Evaluator};
 use crate::actions::HandAction;
 use crate::bet_stage::BetStage;
 use crate::bet_stage::BetStage::{Flop, PreFlop, River};
-use crate::card_expansion::CardPrinting;
 use crate::global_immutables::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
 use crate::table::deal_information::DealInformation;
@@ -136,9 +135,9 @@ impl Table {
             None => array!["None"],
             Some(cards) => {
                 array![
-                    cards[0].to_ascii_string(),
-                    cards[1].to_ascii_string(),
-                    cards[2].to_ascii_string()
+                    cards[0].to_string(),
+                    cards[1].to_string(),
+                    cards[2].to_string()
                 ]
             }
         }
@@ -152,9 +151,9 @@ impl Table {
                 PreFlop => array!["Hidden"],
                 _ => {
                     array![
-                        cards[0].to_ascii_string(),
-                        cards[1].to_ascii_string(),
-                        cards[2].to_ascii_string()
+                        cards[0].to_string(),
+                        cards[1].to_string(),
+                        cards[2].to_string()
                     ]
                 }
             },
@@ -165,7 +164,7 @@ impl Table {
     pub fn get_turn_string(&self) -> JsonValue {
         match self.turn {
             None => "None".into(),
-            Some(card) => card.to_ascii_string().into(),
+            Some(card) => card.to_string().into(),
         }
     }
 
@@ -175,7 +174,7 @@ impl Table {
             Some(card) => match &self.table_state {
                 PreFlop => "Hidden".into(),
                 Flop => "Hidden".into(),
-                _ => card.to_ascii_string().into(),
+                _ => card.to_string().into(),
             },
         }
     }
@@ -184,7 +183,7 @@ impl Table {
     pub fn get_river_string(&self) -> JsonValue {
         match self.river {
             None => "None".into(),
-            Some(card) => card.to_ascii_string().into(),
+            Some(card) => card.to_string().into(),
         }
     }
 
@@ -192,7 +191,7 @@ impl Table {
         match self.river {
             None => "None".into(),
             Some(card) => match &self.table_state {
-                River => card.to_ascii_string().into(),
+                River => card.to_string().into(),
                 _ => "Hidden".into(),
             },
         }
