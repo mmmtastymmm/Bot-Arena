@@ -305,7 +305,7 @@ impl Table {
                 *self.player_bets.get_mut(index).unwrap() += bet_amount;
                 let table_action = TableAction::TakePlayerAction(
                     self.get_current_player_mut().get_id(),
-                    HandAction::Raise(bet_amount),
+                    HandAction::Raise(bet_amount - difference),
                 );
                 self.round_actions.push(table_action);
             }
@@ -403,24 +403,7 @@ impl Table {
     }
 
     fn update_current_player_index_to_next_active(&mut self) {
-        for _ in 0..self.players.len() {
-            // Set the next active player to the next index, resetting back down if out of bounds
-            self.current_player_index += 1;
-            if self.current_player_index >= self.players.len() {
-                self.current_player_index = 0;
-            }
-            // An all in player is no longer can take actions so skip them as well
-            if self.get_current_player_mut().total_money == 0 {
-                continue;
-            }
-            // If the player is active while also not all in they are the next active player
-            match self.get_current_player_mut().player_state {
-                PlayerState::Folded => {}
-                PlayerState::Active(_) => {
-                    break;
-                }
-            }
-        }
+        self.current_player_index = self.get_next_valid_player();
         if !self.get_current_player_mut().is_alive() {
             panic!("Current player not alive after update!")
         }
@@ -430,6 +413,29 @@ impl Table {
             }
             PlayerState::Active(_) => {}
         }
+    }
+
+    fn get_next_valid_player(&self) -> usize {
+        let mut next_index = self.current_player_index;
+        for _ in 0..self.players.len() {
+            // Calculate the next active player using the next index instead of modifying self.current_player_index directly
+            next_index += 1;
+            if next_index >= self.players.len() {
+                next_index = 0;
+            }
+            // An all in player is no longer can take actions so skip them as well. Use next_index instead of current_player_index
+            if self.players[next_index].total_money == 0 {
+                continue;
+            }
+            // If the player is active while also not all in they are the next active player. Use next_index instead of current_player_index
+            match self.players[next_index].player_state {
+                PlayerState::Folded => {}
+                PlayerState::Active(_) => {
+                    break;
+                }
+            }
+        }
+        next_index
     }
 
     /// Deals cards for the flop, turn, and river
