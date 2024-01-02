@@ -403,7 +403,7 @@ impl Table {
     }
 
     fn update_current_player_index_to_next_active(&mut self) {
-        self.current_player_index = self.get_next_valid_player();
+        self.current_player_index = self.get_next_valid_player(self.current_player_index);
         if !self.get_current_player_mut().is_alive() {
             panic!("Current player not alive after update!")
         }
@@ -415,27 +415,26 @@ impl Table {
         }
     }
 
-    fn get_next_valid_player(&self) -> usize {
-        let mut next_index = self.current_player_index;
+    fn get_next_valid_player(&self, mut index_to_search_from: usize) -> usize {
         for _ in 0..self.players.len() {
-            // Calculate the next active player using the next index instead of modifying self.current_player_index directly
-            next_index += 1;
-            if next_index >= self.players.len() {
-                next_index = 0;
+            // Calculate the next active player from the current index
+            index_to_search_from += 1;
+            if index_to_search_from >= self.players.len() {
+                index_to_search_from = 0;
             }
-            // An all in player is no longer can take actions so skip them as well. Use next_index instead of current_player_index
-            if self.players[next_index].total_money == 0 {
+            // An all in player is no longer can take actions so skip them as well.
+            if self.players[index_to_search_from].total_money == 0 {
                 continue;
             }
-            // If the player is active while also not all in they are the next active player. Use next_index instead of current_player_index
-            match self.players[next_index].player_state {
+            // If the player is active while also not all in they are the next active player.
+            match self.players[index_to_search_from].player_state {
                 PlayerState::Folded => {}
                 PlayerState::Active(_) => {
                     break;
                 }
             }
         }
-        next_index
+        index_to_search_from
     }
 
     /// Deals cards for the flop, turn, and river

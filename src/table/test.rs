@@ -745,6 +745,7 @@ fn test_rounds_with_some_folding() {
         let mut previous_dealer_index = None;
         let mut previous_round_number = None;
         let mut last_known_table_state = None;
+        let mut untouchables = vec![];
         for _ in 0..1000000 {
             if table.is_game_over() {
                 // Make sure dealing also doesn't enable the game
@@ -757,11 +758,25 @@ fn test_rounds_with_some_folding() {
             }
             if last_known_table_state != Some(table.table_state) {
                 last_known_table_state = Some(table.table_state);
-                let good_index = {
-                    let mut guess = table.dealer_button_index;
+                let good_index = table.get_next_valid_player(table.dealer_button_index);
+                untouchables = {
+                    let mut mini = vec![];
+                    let mut index = table.dealer_button_index + 1;
+                    loop {
+                        if index >= table.players.len() {
+                            index = 0;
+                        }
+                        if index == good_index {
+                            break;
+                        }
+                        mini.push(index);
+                        index += 1;
+                    }
+                    mini
                 };
-                // assert_eq!(good_index, table.current_player_index);
+                assert_eq!(good_index, table.current_player_index);
             }
+            assert!(!untouchables.contains(&table.current_player_index));
             if previous_round_number != Some(table.hand_number) {
                 previous_round_number = Some(table.hand_number);
                 assert_ne!(previous_dealer_index, Some(table.dealer_button_index));
