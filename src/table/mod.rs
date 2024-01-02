@@ -13,65 +13,11 @@ use crate::bet_stage::BetStage::{Flop, PreFlop, River};
 use crate::card_expansion::CardPrinting;
 use crate::global_immutables::SHARED_EVALUATOR;
 use crate::player_components::{ActiveState, Player, PlayerState};
+use crate::table::deal_information::DealInformation;
+use crate::table::table_action::TableAction;
 
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct DealInformation {
-    pub round_number: i32,
-    pub dealer_button_index: usize,
-}
-
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub enum TableAction {
-    TakePlayerAction(i8, HandAction),
-    DealCards(DealInformation),
-    AdvanceToFlop,
-    AdvanceToTurn,
-    AdvanceToRiver,
-    EvaluateHand(String),
-}
-
-impl fmt::Display for DealInformation {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "hand number: {}, dealer index: {}",
-            self.round_number, self.dealer_button_index
-        )
-    }
-}
-
-impl fmt::Display for TableAction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            TableAction::TakePlayerAction(player, hand_action) => {
-                write!(
-                    f,
-                    "Player {player} took action {}.",
-                    hand_action.simple_string()
-                )
-            }
-            TableAction::DealCards(round_number) => {
-                write!(f, "Table dealt round {round_number}.")
-            }
-            TableAction::AdvanceToFlop => {
-                write!(f, "Table advanced to flop.")
-            }
-            TableAction::AdvanceToTurn => {
-                write!(f, "Table advanced to turn.")
-            }
-            TableAction::AdvanceToRiver => {
-                write!(f, "Table advanced to river.")
-            }
-            TableAction::EvaluateHand(string) => {
-                write!(
-                    f,
-                    "Table evaluated hand with the following result: {string}"
-                )
-            }
-        }
-    }
-}
-
+mod deal_information;
+mod table_action;
 #[cfg(test)]
 mod test;
 

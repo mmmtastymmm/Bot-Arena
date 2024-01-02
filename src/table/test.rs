@@ -1010,3 +1010,21 @@ pub fn test_only_unique_cards_with_deal() {
         assert_eq!(set.len(), NUMBER_OF_PLAYERS * 2 + 5);
     }
 }
+
+#[test]
+pub fn test_raise_then_call() {
+    const NUMBER_OF_PLAYERS: usize = 2;
+    let mut table = Table::new(NUMBER_OF_PLAYERS);
+    assert_eq!(table.table_state, PreFlop);
+    table.take_action(HandAction::Call);
+    table.take_action(HandAction::Call);
+    assert_eq!(table.table_state, Flop);
+    table.take_action(HandAction::Call);
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Raise(1));
+    table.take_action(HandAction::Call);
+    assert_eq!(table.table_state, Turn);
+    table.take_action(HandAction::Call);
+    table.take_action(HandAction::Call);
+    assert_eq!(table.table_state, River);
+}
