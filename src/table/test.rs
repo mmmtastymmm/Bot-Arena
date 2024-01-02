@@ -372,7 +372,7 @@ pub fn test_two_side_pots_with_actions_checked() {
         *table.round_actions.last().unwrap(),
         TableAction::DealCards(DealInformation {
             round_number: 2,
-            dealer_button_index: 0,
+            dealer_button_index: 1,
         })
     );
     // First two tied for 6, and ante up for the next round so they're at 2

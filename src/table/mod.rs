@@ -112,7 +112,7 @@ impl Table {
         // Reset actions taken to just the deal action
         let deal_information = DealInformation {
             round_number: self.hand_number,
-            dealer_button_index: self.dealer_button_index,
+            dealer_button_index: self.get_next_dealer_button_index(),
         };
         self.round_actions = vec![TableAction::DealCards(deal_information.clone())];
         info!("Dealing for round {}", deal_information);
@@ -595,7 +595,7 @@ impl Table {
     /// Picks winner(s), gives out winnings, and deals a new hand
     fn resolve_hand(&mut self) {
         // Generate the result string
-        let mut result_string = String::from("The hand resolved because: ");
+        let mut result_string = "".to_string();
         // This is the everyone but one person has folded case, give that person the winnings
         if self.get_active_player_count() == 1 {
             let pot_size = self.get_pot_size();
