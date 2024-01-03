@@ -7,9 +7,10 @@ A server that registers clients and runs a Texas Hold'em game.
 The server starts a websocket server at a specified port, waits for clients to connect, and then starts the game.
 
 ## Running
+The server may be run locally or with docker. It also contains basic training bots that may aid in development that can be enabled at runtime via command line arguments. 
 
 ### Local Machine
-To run on a local machine a cargo run command can be used.
+To run on a local machine a cargo run command can be used. This command also includes 21 training call bots that the server will also initialize.
 
 ```bash
 cargo run --release -- --n-call-bots=21
@@ -18,8 +19,7 @@ cargo run --release -- --n-call-bots=21
 To install cargo follow the instructions here: https://www.rust-lang.org/tools/install
 
 ### Docker
-A docker image is provided. Below would be an example of running the server with 21 call bots (for testing purposes). 
-It also publishes the default server port to the local machine.
+To start the server in the same way using docker run the following command:
 
 ```bash
 docker run --pull always --rm -it -p 10100:10100 mmmtastymmm/bot-arena:main --n-call-bots=21
